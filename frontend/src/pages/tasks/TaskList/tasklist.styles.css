@@ -1,0 +1,125 @@
+/* TaskList page specific styles */
+
+.tasklist-container {
+  @apply space-y-6;
+}
+
+.tasklist-filters {
+  @apply p-4;
+}
+
+.tasklist-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.task-card {
+  @apply hover:shadow-md transition-shadow;
+}
+
+.task-card.completed {
+  @apply bg-green-50 border-green-200;
+}
+
+.task-card.overdue {
+  @apply bg-red-50 border-red-200;
+}
+
+.task-header {
+  @apply pb-3;
+}
+
+.task-title {
+  @apply text-lg font-semibold line-clamp-2;
+}
+
+.task-description {
+  @apply line-clamp-3;
+}
+
+.task-content {
+  @apply space-y-3;
+}
+
+.task-badges {
+  @apply flex items-center justify-between;
+}
+
+.status-badge {
+  @apply inline-flex items-center;
+}
+
+.status-icon {
+  @apply h-3 w-3 mr-1;
+}
+
+.attachment-badge {
+  @apply text-xs;
+}
+
+.due-date {
+  @apply flex items-center text-sm text-gray-600;
+}
+
+.due-date-icon {
+  @apply h-4 w-4 mr-2;
+}
+
+.overdue-badge {
+  @apply ml-2 text-xs;
+}
+
+.created-date {
+  @apply flex items-center text-xs text-gray-500;
+}
+
+.created-icon {
+  @apply h-3 w-3 mr-1;
+}
+
+.assigned-to {
+  @apply text-xs text-gray-500;
+}
+
+.empty-state {
+  @apply text-center py-12;
+}
+
+.empty-icon {
+  @apply h-12 w-12 mx-auto mb-4 text-gray-400;
+}
+
+.empty-title {
+  @apply text-lg font-medium text-gray-900 mb-2;
+}
+
+.empty-description {
+  @apply text-gray-500 mb-4;
+}
+
+.loading-skeleton {
+  @apply animate-pulse;
+}
+
+.skeleton-header {
+  @apply h-4 bg-gray-200 rounded w-3/4 mb-2;
+}
+
+.skeleton-description {
+  @apply h-3 bg-gray-200 rounded w-1/2;
+}
+
+.skeleton-content {
+  @apply h-3 bg-gray-200 rounded mb-2;
+}
+
+.skeleton-footer {
+  @apply flex justify-between items-center;
+}
+
+.skeleton-badge {
+  @apply h-6 bg-gray-200 rounded w-16;
+}
+
+.skeleton-avatar {
+  @apply h-8 bg-gray-200 rounded w-8;
+}

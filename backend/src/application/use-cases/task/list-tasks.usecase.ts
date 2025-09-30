@@ -1,0 +1,51 @@
+import { ITaskRepository } from '../../../domain/repositories/task.repository';
+import { IUserRepository } from '../../../domain/repositories/user.repository';
+import { TaskRepositoryImpl } from '../../../infrastructure/repositories/task.repository.impl';
+import { UserRepositoryImpl } from '../../../infrastructure/repositories/user.repository.impl';
+import { TaskFiltersDto } from '../../dtos/task.dto';
+import { PaginatedTasksResult, TaskService } from '../../services/task.service';
+
+export class ListTasksUseCase {
+  private taskService: TaskService;
+
+  constructor(
+    taskRepository?: ITaskRepository,
+    userRepository?: IUserRepository
+  ) {
+    const taskRepo = taskRepository || new TaskRepositoryImpl();
+    const userRepo = userRepository || new UserRepositoryImpl();
+    this.taskService = new TaskService(taskRepo, userRepo);
+  }
+
+  async execute(
+    userId: string,
+    userRole: string,
+    filters?: TaskFiltersDto
+  ): Promise<PaginatedTasksResult> {
+    try {
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 10;
+
+      if (userRole === 'admin') {
+        // Admins can see all tasks with filters
+        const taskFilters: any = {};
+
+        if (filters?.status) taskFilters.status = filters.status;
+        if (filters?.startDate) taskFilters.startDate = new Date(filters.startDate);
+        if (filters?.endDate) taskFilters.endDate = new Date(filters.endDate);
+
+        return await this.taskService.getAllTasks(page, limit, taskFilters, userRole);
+      } else {
+        // Regular users can only see their own tasks
+        return await this.taskService.getUserTasks(
+          userId,
+          page,
+          limit,
+          filters?.status
+        );
+      }
+    } catch (error) {
+      throw new Error(`Task listing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+}

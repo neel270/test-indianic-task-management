@@ -1,0 +1,77 @@
+/* Profile page specific styles */
+
+.profile-container {
+  @apply max-w-4xl mx-auto space-y-6;
+}
+
+.profile-header {
+  @apply text-center;
+}
+
+.profile-title {
+  @apply text-3xl font-bold text-gray-900;
+}
+
+.profile-description {
+  @apply text-gray-600 mt-1;
+}
+
+.profile-grid {
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+}
+
+.profile-overview-card {
+  @apply lg:col-span-1;
+}
+
+.profile-form-card {
+  @apply lg:col-span-2;
+}
+
+.profile-avatar-container {
+  @apply relative inline-block;
+}
+
+.profile-avatar {
+  @apply w-24 h-24 mx-auto;
+}
+
+.avatar-upload-button {
+  @apply absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1 cursor-pointer hover:bg-blue-700 transition-colors;
+}
+
+.profile-name {
+  @apply mt-4;
+}
+
+.status-badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800;
+}
+
+.status-dot {
+  @apply w-2 h-2 bg-green-500 rounded-full mr-2;
+}
+
+.profile-info {
+  @apply space-y-2 text-sm;
+}
+
+.info-row {
+  @apply flex justify-between;
+}
+
+.info-label {
+  @apply text-gray-600;
+}
+
+.info-value {
+  @apply font-medium;
+}
+
+.form-actions {
+  @apply flex justify-end space-x-4;
+}
+
+.edit-toggle-button {
+  @apply flex items-center justify-between;
+}

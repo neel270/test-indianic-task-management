@@ -1,0 +1,237 @@
+/* Home page specific styles */
+
+.home-container {
+  @apply min-h-screen bg-gradient-to-br from-gray-50 to-gray-100;
+}
+
+.home-nav {
+  @apply bg-white shadow-sm;
+}
+
+.nav-content {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.nav-flex {
+  @apply flex justify-between items-center py-4;
+}
+
+.nav-brand {
+  @apply flex items-center;
+}
+
+.brand-icon {
+  @apply h-8 w-8 text-blue-600 mr-2;
+}
+
+.brand-text {
+  @apply text-xl font-bold text-gray-900;
+}
+
+.nav-actions {
+  @apply flex items-center space-x-4;
+}
+
+.hero-section {
+  @apply py-20 px-4 sm:px-6 lg:px-8;
+}
+
+.hero-content {
+  @apply max-w-7xl mx-auto text-center;
+}
+
+.hero-badge {
+  @apply mb-4;
+}
+
+.hero-title {
+  @apply text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6;
+}
+
+.hero-highlight {
+  @apply text-blue-600;
+}
+
+.hero-subtitle {
+  @apply text-xl text-gray-600 mb-8 max-w-3xl mx-auto;
+}
+
+.hero-actions {
+  @apply flex flex-col sm:flex-row gap-4 justify-center;
+}
+
+.hero-stats {
+  @apply grid grid-cols-1 sm:grid-cols-3 gap-8 mt-16;
+}
+
+.stat-item {
+  @apply text-center;
+}
+
+.stat-number {
+  @apply text-3xl font-bold text-gray-900 mb-2;
+}
+
+.stat-label {
+  @apply text-gray-600;
+}
+
+.features-section {
+  @apply py-20 bg-white;
+}
+
+.features-content {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.features-header {
+  @apply text-center mb-16;
+}
+
+.features-title {
+  @apply text-3xl font-bold text-gray-900 mb-4;
+}
+
+.features-subtitle {
+  @apply text-xl text-gray-600 max-w-2xl mx-auto;
+}
+
+.features-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8;
+}
+
+.feature-card {
+  @apply hover:shadow-lg transition-shadow;
+}
+
+.feature-header {
+  @apply mb-4;
+}
+
+.feature-icon {
+  @apply w-12 h-12 rounded-lg flex items-center justify-center mb-4;
+}
+
+.feature-title {
+  @apply text-xl;
+}
+
+.feature-description {
+  @apply text-gray-600;
+}
+
+.benefits-section {
+  @apply py-20 bg-gray-50;
+}
+
+.benefits-grid {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-12 items-center;
+}
+
+.benefits-content {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.benefits-title {
+  @apply text-3xl font-bold text-gray-900 mb-6;
+}
+
+.benefits-subtitle {
+  @apply text-lg text-gray-600 mb-8;
+}
+
+.benefits-list {
+  @apply space-y-4;
+}
+
+.benefit-item {
+  @apply flex items-center;
+}
+
+.benefit-icon {
+  @apply h-5 w-5 text-green-600 mr-3 flex-shrink-0;
+}
+
+.benefit-text {
+  @apply text-gray-700;
+}
+
+.benefits-stats {
+  @apply grid grid-cols-2 gap-6;
+}
+
+.benefit-stat-card {
+  @apply text-center p-6;
+}
+
+.benefit-stat-icon {
+  @apply h-8 w-8 mx-auto mb-2;
+}
+
+.benefit-stat-number {
+  @apply text-2xl font-bold text-gray-900 mb-1;
+}
+
+.benefit-stat-label {
+  @apply text-sm text-gray-600;
+}
+
+.cta-section {
+  @apply py-20 bg-blue-600;
+}
+
+.cta-content {
+  @apply max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8;
+}
+
+.cta-title {
+  @apply text-3xl font-bold text-white mb-4;
+}
+
+.cta-subtitle {
+  @apply text-xl text-blue-100 mb-8;
+}
+
+.cta-actions {
+  @apply flex flex-col sm:flex-row gap-4 justify-center;
+}
+
+.footer {
+  @apply bg-gray-900 text-white py-12;
+}
+
+.footer-content {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.footer-grid {
+  @apply grid grid-cols-1 md:grid-cols-4 gap-8;
+}
+
+.footer-brand {
+  @apply col-span-1 md:col-span-2;
+}
+
+.footer-logo {
+  @apply flex items-center mb-4;
+}
+
+.footer-description {
+  @apply text-gray-400 mb-4;
+}
+
+.footer-section-title {
+  @apply font-semibold mb-4;
+}
+
+.footer-links {
+  @apply space-y-2 text-gray-400;
+}
+
+.footer-link {
+  @apply hover:text-white;
+}
+
+.footer-bottom {
+  @apply border-t border-gray-800 mt-8 pt-8 text-center text-gray-400;
+}

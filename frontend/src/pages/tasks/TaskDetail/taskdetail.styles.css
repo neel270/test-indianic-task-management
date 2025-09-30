@@ -1,0 +1,177 @@
+/* TaskDetail page specific styles */
+
+.taskdetail-container {
+  @apply max-w-4xl mx-auto space-y-6;
+}
+
+.taskdetail-header {
+  @apply flex items-center justify-between;
+}
+
+.taskdetail-title-section {
+  @apply flex items-center space-x-4;
+}
+
+.taskdetail-title {
+  @apply text-2xl font-bold text-gray-900;
+}
+
+.taskdetail-subtitle {
+  @apply text-gray-600;
+}
+
+.taskdetail-actions {
+  @apply flex items-center space-x-2;
+}
+
+.taskdetail-grid {
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+}
+
+.taskdetail-main {
+  @apply lg:col-span-2 space-y-6;
+}
+
+.taskdetail-sidebar {
+  @apply space-y-6;
+}
+
+.taskdetail-description {
+  @apply text-gray-700 whitespace-pre-wrap;
+}
+
+.taskdetail-attachments {
+  @apply space-y-2;
+}
+
+.attachment-item {
+  @apply flex items-center justify-between p-3 border rounded-lg;
+}
+
+.attachment-info {
+  @apply flex items-center space-x-3;
+}
+
+.attachment-icon {
+  @apply h-4 w-4 text-gray-400;
+}
+
+.attachment-name {
+  @apply text-sm font-medium;
+}
+
+.activity-timeline {
+  @apply space-y-4;
+}
+
+.activity-item {
+  @apply flex items-start space-x-3;
+}
+
+.activity-avatar {
+  @apply flex-shrink-0;
+}
+
+.activity-avatar-bg {
+  @apply w-8 h-8 rounded-full flex items-center justify-center;
+}
+
+.activity-content {
+  @apply flex-1;
+}
+
+.activity-text {
+  @apply text-sm;
+}
+
+.activity-author {
+  @apply font-medium;
+}
+
+.activity-time {
+  @apply text-xs text-gray-500;
+}
+
+.task-details-card {
+  @apply space-y-4;
+}
+
+.detail-row {
+  @apply flex items-center justify-between;
+}
+
+.detail-label {
+  @apply text-sm font-medium;
+}
+
+.detail-value {
+  @apply text-sm text-gray-700;
+}
+
+.overdue-text {
+  @apply text-red-600 font-medium;
+}
+
+.overdue-badge {
+  @apply text-xs text-red-500;
+}
+
+.assignment-card {
+  @apply flex items-center space-x-3;
+}
+
+.assignment-avatar {
+  @apply h-8 w-8;
+}
+
+.assignment-info {
+  @apply flex-1;
+}
+
+.assignment-label {
+  @apply text-sm font-medium;
+}
+
+.assignment-value {
+  @apply text-sm text-gray-600;
+}
+
+.tags-display {
+  @apply flex flex-wrap gap-2;
+}
+
+.quick-actions {
+  @apply space-y-2;
+}
+
+.action-button {
+  @apply w-full justify-start;
+}
+
+.status-badge {
+  @apply inline-flex items-center;
+}
+
+.status-icon {
+  @apply h-4 w-4;
+}
+
+.priority-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.priority-urgent {
+  @apply bg-red-100 text-red-800;
+}
+
+.priority-high {
+  @apply bg-orange-100 text-orange-800;
+}
+
+.priority-medium {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.priority-low {
+  @apply bg-green-100 text-green-800;
+}
