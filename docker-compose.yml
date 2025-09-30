@@ -9,7 +9,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-password}
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-task-management_service}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-task-management-service}
     ports:
       - "27017:27017"
     volumes:
