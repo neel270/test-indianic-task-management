@@ -51,15 +51,15 @@ export interface RateLimitConfig {
 }
 
 export const createRateLimit = (config: RateLimitConfig = {}) => {
-   const {
+  const {
     //  windowMs = 15 * 60 * 1000, // 15 minutes
-     maxRequests = 100, // 100 requests per window
-     skipSuccessfulRequests = false,
-  //    skipFailedRequests = false,
-     message = 'Too many requests, please try again later.',
-     standardHeaders = true,
-     legacyHeaders = false,
-   } = config;
+    maxRequests = 100, // 100 requests per window
+    skipSuccessfulRequests = false,
+    //    skipFailedRequests = false,
+    message = 'Too many requests, please try again later.',
+    standardHeaders = true,
+    legacyHeaders = false,
+  } = config;
 
   return (req: Request, res: Response, next: NextFunction) => {
     // Generate key based on IP and optionally user ID

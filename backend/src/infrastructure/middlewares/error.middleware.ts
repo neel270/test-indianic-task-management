@@ -46,9 +46,9 @@ export class ErrorMiddleware {
       message,
       ...(process.env.NODE_ENV === 'development' && {
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       }),
-      ...(error.errors && { errors: error.errors })
+      ...(error.errors && { errors: error.errors }),
     };
 
     // Log error for monitoring (in production, use proper logging service)
@@ -60,7 +60,7 @@ export class ErrorMiddleware {
         url: req.url,
         method: req.method,
         ip: req.ip,
-        userAgent: req.get('User-Agent')
+        userAgent: req.get('User-Agent'),
       });
     }
 

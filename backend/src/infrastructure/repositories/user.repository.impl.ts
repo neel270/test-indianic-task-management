@@ -28,15 +28,18 @@ export class UserRepositoryImpl implements IUserRepository {
     return model ? UserModelMapper.toDomainFromMongoose(model.toObject()) : null;
   }
 
-  async findAll(page: number = 1, limit: number = 10): Promise<{ users: UserEntity[]; total: number }> {
+  async findAll(
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ users: UserEntity[]; total: number }> {
     const skip = (page - 1) * limit;
     const [models, total] = await Promise.all([
       this.repository.find().skip(skip).limit(limit).sort({ createdAt: -1 }),
-      this.repository.countDocuments()
+      this.repository.countDocuments(),
     ]);
     return {
       users: models.map(model => UserModelMapper.toDomainFromMongoose(model.toObject())),
-      total
+      total,
     };
   }
 

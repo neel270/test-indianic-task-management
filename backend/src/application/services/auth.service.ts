@@ -21,6 +21,27 @@ export interface OTPData {
 
 export class AuthService {
   private readonly otpExpiresIn: number = 10 * 60 * 1000; // 10 minutes
+  private readonly otpLength: number = 6;
+  private readonly resetTokenLength: number = 32;
+  private readonly saltRounds: number = 12;
+  private readonly resetTokenExpiresIn: number = 60 * 60; // 1 hour in seconds
+
+  // Error messages
+  private readonly ERROR_MESSAGES = {
+    USER_NOT_FOUND: 'User not found',
+    INVALID_CREDENTIALS: 'Invalid credentials',
+    INVALID_REFRESH_TOKEN: 'Invalid refresh token',
+    INVALID_RESET_TOKEN: 'Invalid reset token',
+    INVALID_ACCESS_TOKEN: 'Invalid access token',
+    USER_ALREADY_EXISTS: 'User already exists with this email',
+    ACCOUNT_DEACTIVATED: 'Account is deactivated',
+    OTP_EXPIRED: 'OTP has expired',
+    RESET_TOKEN_EXPIRED: 'Reset token has expired',
+    INVALID_OR_EXPIRED_OTP: 'Invalid or expired OTP',
+    CURRENT_PASSWORD_INCORRECT: 'Current password is incorrect',
+    REDIS_NOT_AVAILABLE: 'Redis service not available',
+    DEPRECATED_METHOD: 'This method is deprecated. Please use resetPasswordWithEmail instead.',
+  } as const;
 
   constructor(
     private readonly userRepository: IUserRepository,
@@ -41,7 +62,7 @@ export class AuthService {
     // Check if user already exists
     const existingUser = await this.userRepository.findByEmail(emailVo);
     if (existingUser) {
-      throw new Error('User already exists with this email');
+      throw new Error(this.ERROR_MESSAGES.USER_ALREADY_EXISTS);
     }
 
     // Hash password
@@ -71,19 +92,19 @@ export class AuthService {
     console.log('User found:', user ? user.email : 'No user found');
     console.log('User password hash:', user);
     if (!user) {
-      throw new Error('Invalid credentials');
+      throw new Error(this.ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
     console.log('User is active:', user.isActive);
 
     // Check if user is active
     if (!user.isActive) {
-      throw new Error('Account is deactivated');
+      throw new Error(this.ERROR_MESSAGES.ACCOUNT_DEACTIVATED);
     }
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     console.log('Password valid:', isPasswordValid);
     if (!isPasswordValid) {
-      throw new Error('Invalid credentials');
+      throw new Error(this.ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
     // Generate tokens
@@ -95,12 +116,12 @@ export class AuthService {
   async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string }> {
     try {
       // Verify refresh token
-      const payload = jwt.verify(refreshToken, env.jwtRefreshSecret) as any;
+      const payload = jwt.verify(refreshToken, env.jwtRefreshSecret) as { userId: string };
 
       // Find user
       const user = await this.userRepository.findById(payload.userId);
-      if (!user || !user.isActive) {
-        throw new Error('Invalid refresh token');
+      if (!user?.isActive) {
+        throw new Error(this.ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
       }
 
       // Generate new access token
@@ -112,8 +133,8 @@ export class AuthService {
       );
 
       return { accessToken };
-    } catch (error) {
-      throw new Error('Invalid refresh token');
+    } catch {
+      throw new Error(this.ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
     }
   }
 
@@ -123,11 +144,11 @@ export class AuthService {
     // Check if user exists
     const user = await this.userRepository.findByEmail(emailVo);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error(this.ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     // Generate OTP
-    const otp = crypto.randomInt(100000, 999999).toString();
+    const otp = crypto.randomInt(10 ** (this.otpLength - 1), 10 ** this.otpLength).toString();
     const expiresAt = new Date(Date.now() + this.otpExpiresIn);
 
     // Store OTP in Redis with expiration
@@ -195,19 +216,19 @@ Task Management System`,
     // Find user
     const user = await this.userRepository.findByEmail(emailVo);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error(this.ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     // Verify OTP from Redis
     if (!this.redisService) {
-      throw new Error('Redis service not available');
+      throw new Error(this.ERROR_MESSAGES.REDIS_NOT_AVAILABLE);
     }
 
     const otpKey = `password_reset_otp:${email}`;
     const storedOTPData = await this.redisService.getCache(otpKey);
 
     if (!storedOTPData || storedOTPData.otp !== otp) {
-      throw new Error('Invalid or expired OTP');
+      throw new Error(this.ERROR_MESSAGES.INVALID_OR_EXPIRED_OTP);
     }
 
     // Check if OTP has expired
@@ -215,25 +236,24 @@ Task Management System`,
     if (expiresAt < new Date()) {
       // Clean up expired OTP
       await this.redisService.deleteCache(otpKey);
-      throw new Error('OTP has expired');
+      throw new Error(this.ERROR_MESSAGES.OTP_EXPIRED);
     }
 
     // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetToken = crypto.randomBytes(this.resetTokenLength).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
     // Store reset token in Redis with expiration (1 hour)
     const resetTokenKey = `password_reset_token:${email}`;
-    const resetTokenExpiresIn = 60 * 60; // 1 hour in seconds
     await this.redisService.setCache(
       resetTokenKey,
       {
         hashedToken,
         userId: user.id,
         email,
-        expiresAt: new Date(Date.now() + resetTokenExpiresIn * 1000).toISOString(),
+        expiresAt: new Date(Date.now() + this.resetTokenExpiresIn * 1000).toISOString(),
       },
-      resetTokenExpiresIn
+      this.resetTokenExpiresIn
     );
 
     // Clean up used OTP
@@ -244,7 +264,7 @@ Task Management System`,
 
   async resetPassword(_resetToken: string, _newPassword: string): Promise<UserEntity> {
     // This method is deprecated in favor of resetPasswordWithEmail
-    throw new Error('This method is deprecated. Please use resetPasswordWithEmail instead.');
+    throw new Error(this.ERROR_MESSAGES.DEPRECATED_METHOD);
   }
 
   async resetPasswordWithEmail(
@@ -253,7 +273,7 @@ Task Management System`,
     newPassword: string
   ): Promise<UserEntity> {
     if (!this.redisService) {
-      throw new Error('Redis service not available');
+      throw new Error(this.ERROR_MESSAGES.REDIS_NOT_AVAILABLE);
     }
 
     // Hash the provided reset token to match against stored hash
@@ -264,7 +284,7 @@ Task Management System`,
     const storedResetTokenData = await this.redisService.getCache(resetTokenKey);
 
     if (!storedResetTokenData || storedResetTokenData.hashedToken !== hashedToken) {
-      throw new Error('Invalid reset token');
+      throw new Error(this.ERROR_MESSAGES.INVALID_RESET_TOKEN);
     }
 
     // Check if reset token has expired
@@ -272,18 +292,18 @@ Task Management System`,
     if (expiresAt < new Date()) {
       // Clean up expired reset token
       await this.redisService.deleteCache(resetTokenKey);
-      throw new Error('Reset token has expired');
+      throw new Error(this.ERROR_MESSAGES.RESET_TOKEN_EXPIRED);
     }
 
     // Find user
     const emailVo = Email.create(email);
     const user = await this.userRepository.findByEmail(emailVo);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error(this.ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const hashedPassword = await bcrypt.hash(newPassword, this.saltRounds);
 
     // Update user password
     const updatedUser = await this.userRepository.update(user.id, {
@@ -304,17 +324,17 @@ Task Management System`,
   ): Promise<UserEntity> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error(this.ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     // Verify current password
     const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
     if (!isCurrentPasswordValid) {
-      throw new Error('Current password is incorrect');
+      throw new Error(this.ERROR_MESSAGES.CURRENT_PASSWORD_INCORRECT);
     }
 
     // Hash new password
-    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+    const hashedNewPassword = await bcrypt.hash(newPassword, this.saltRounds);
 
     // Update user password
     return await this.userRepository.update(user.id, {
@@ -341,14 +361,18 @@ Task Management System`,
 
   async verifyAccessToken(token: string): Promise<{ userId: string; email: string; role: string }> {
     try {
-      const payload = jwt.verify(token, env.jwtSecret) as any;
+      const payload = jwt.verify(token, env.jwtSecret) as {
+        userId: string;
+        email: string;
+        role: string;
+      };
       return {
         userId: payload.userId,
         email: payload.email,
         role: payload.role,
       };
-    } catch (error) {
-      throw new Error('Invalid access token');
+    } catch {
+      throw new Error(this.ERROR_MESSAGES.INVALID_ACCESS_TOKEN);
     }
   }
 
@@ -363,7 +387,7 @@ Task Management System`,
   }> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error(this.ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     // Get user tasks with pagination (page 1, limit 1000 for stats)

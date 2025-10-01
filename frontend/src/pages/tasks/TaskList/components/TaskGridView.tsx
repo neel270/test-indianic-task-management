@@ -23,10 +23,10 @@ export const TaskGridView: React.FC<TaskGridViewProps> = ({
         <TaskCardComponent
           key={task.id}
           task={task}
-          onView={onView}
-          onEdit={onEdit}
           onStatusToggle={onStatusToggle}
           onDelete={onDelete}
+          {...(onView && { onView })}
+          {...(onEdit && { onEdit })}
         />
       ))}
     </div>

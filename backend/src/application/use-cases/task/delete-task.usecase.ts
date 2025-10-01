@@ -7,12 +7,9 @@ import { TaskService } from '../../services/task.service';
 export class DeleteTaskUseCase {
   private taskService: TaskService;
 
-  constructor(
-    taskRepository?: ITaskRepository,
-    userRepository?: IUserRepository
-  ) {
-    const taskRepo = taskRepository || new TaskRepositoryImpl();
-    const userRepo = userRepository || new UserRepositoryImpl();
+  constructor(taskRepository?: ITaskRepository, userRepository?: IUserRepository) {
+    const taskRepo = taskRepository ?? new TaskRepositoryImpl();
+    const userRepo = userRepository ?? new UserRepositoryImpl();
     this.taskService = new TaskService(taskRepo, userRepo);
   }
 
@@ -25,10 +22,12 @@ export class DeleteTaskUseCase {
       }
 
       return {
-        message: 'Task deleted successfully'
+        message: 'Task deleted successfully',
       };
     } catch (error) {
-      throw new Error(`Task deletion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Task deletion failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 }

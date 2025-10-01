@@ -39,12 +39,15 @@ export const validateRequest = (req: Request, res: Response, next: NextFunction)
     '/api-docs/swagger-ui-bundle.js',
     '/api-docs/swagger-ui-standalone-preset.js',
     '/api-docs/swagger-ui-init.js',
+    '/uploads/',
   ];
 
   if (swaggerUiPaths.some(path => req.url === path || req.url.startsWith(path))) {
     return next();
   }
-
+  if (req.url.startsWith('/uploads/')) {
+    return next();
+  }
   // Check for suspicious patterns in request body and query parameters only
   // (excluding headers to avoid false positives from User-Agent and other legitimate headers)
   const suspiciousPatterns = [
@@ -85,7 +88,7 @@ export const validateRequest = (req: Request, res: Response, next: NextFunction)
 
 // Request size validation middleware
 export const validateRequestSize = (req: Request, res: Response, next: NextFunction) => {
-  const contentLength = parseInt(req.get('content-length') || '0');
+  const contentLength = parseInt(req.get('content-length') ?? '0');
   const maxSize = 10 * 1024 * 1024; // 10MB limit
 
   if (contentLength > maxSize) {

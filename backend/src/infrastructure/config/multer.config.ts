@@ -2,11 +2,15 @@
 import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
-
+import { env } from './env';
 // Storage configuration for profile images
 export const profileImageStorage = multer.diskStorage({
-  destination: (req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
-    const uploadDir = process.env.UPLOAD_DIR || 'uploads/';
+  destination: (
+    req: Express.Request & { user?: { id: string } },
+    _file: Express.Multer.File,
+    cb: (error: Error | null, destination: string) => void
+  ) => {
+    const uploadDir = env.uploadDir;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -22,28 +26,24 @@ export const profileImageStorage = multer.diskStorage({
   },
   filename: (_req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
     // Generate unique filename with timestamp
-    const uniqueSuffix = Date.now() + '-profile';
+    const uniqueSuffix = `${Date.now()}-profile`;
     const extension = path.extname(file.originalname);
     cb(null, uniqueSuffix + extension);
-  }
+  },
 });
 
 // Storage configuration for task files
 export const taskFileStorage = multer.diskStorage({
   destination: (req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
-    const uploadDir = process.env.UPLOAD_DIR || 'uploads/';
+    const uploadDir = env.uploadDir;
     const userId = req.user?.id;
-    const taskId = req.params.id;
+    const taskId = req.params.id ?? req.body.taskId ?? 'new';
 
     if (!userId) {
       return cb(new Error('User ID not found'), '');
     }
 
-    if (!taskId) {
-      return cb(new Error('Task ID not found'), '');
-    }
-
-    const taskFileDir = path.join(uploadDir, 'tasks', userId, taskId);
+    const taskFileDir = path.join(uploadDir, userId, 'tasks', taskId);
 
     // Create directory if it doesn't exist
     fs.mkdirSync(taskFileDir, { recursive: true });
@@ -52,21 +52,20 @@ export const taskFileStorage = multer.diskStorage({
   },
   filename: (_req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
     // Generate unique filename with timestamp
-    const uniqueSuffix = Date.now() + '-task';
+    const uniqueSuffix = `${Date.now()}-task`;
     const extension = path.extname(file.originalname);
     cb(null, uniqueSuffix + extension);
-  }
+  },
 });
 
 // File filter for images
-export const imageFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+export const imageFileFilter = (
+  _req: any,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
   // Allow only image files
-  const allowedTypes = [
-    'image/jpeg',
-    'image/jpg',
-    'image/png',
-    'image/webp'
-  ];
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -76,7 +75,11 @@ export const imageFileFilter = (_req: any, file: Express.Multer.File, cb: multer
 };
 
 // File filter for documents
-export const documentFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+export const documentFileFilter = (
+  _req: any,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
   // Allow common document and image types
   const allowedTypes = [
     'image/jpeg',
@@ -87,13 +90,15 @@ export const documentFileFilter = (_req: any, file: Express.Multer.File, cb: mul
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'text/plain',
-    'application/rtf'
+    'application/rtf',
   ];
 
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only images, PDF, Word documents, and text files are allowed.'));
+    cb(
+      new Error('Invalid file type. Only images, PDF, Word documents, and text files are allowed.')
+    );
   }
 };
 
@@ -101,17 +106,17 @@ export const documentFileFilter = (_req: any, file: Express.Multer.File, cb: mul
 export const profileImageUpload = multer({
   storage: profileImageStorage,
   limits: {
-    fileSize: parseInt(process.env.MAX_PROFILE_IMAGE_SIZE || '5242880') // 5MB default
+    fileSize: parseInt(process.env.MAX_PROFILE_IMAGE_SIZE ?? '5242880'), // 5MB default
   },
-  fileFilter: imageFileFilter
+  fileFilter: imageFileFilter,
 });
 
 export const taskFileUpload = multer({
   storage: taskFileStorage,
   limits: {
-    fileSize: parseInt(process.env.MAX_TASK_FILE_SIZE || '10485760') // 10MB default
+    fileSize: parseInt(process.env.MAX_TASK_FILE_SIZE ?? '10485760'), // 10MB default
   },
-  fileFilter: documentFileFilter
+  fileFilter: documentFileFilter,
 });
 
 // Memory storage for files that need processing (like image resizing)
@@ -120,18 +125,18 @@ export const memoryStorage = multer.memoryStorage();
 export const memoryUpload = multer({
   storage: memoryStorage,
   limits: {
-    fileSize: parseInt(process.env.MAX_MEMORY_FILE_SIZE || '10485760') // 10MB default
-  }
+    fileSize: parseInt(process.env.MAX_MEMORY_FILE_SIZE ?? '10485760'), // 10MB default
+  },
 });
 
 // Helper function to delete uploaded file
-export const deleteUploadedFile = (filePath: string): Promise<void> => {
+export const deleteUploadedFile = async (filePath: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     if (!filePath) {
       return resolve();
     }
 
-    fs.unlink(filePath, (error) => {
+    fs.unlink(filePath, error => {
       if (error) {
         console.error('Error deleting file:', error);
         reject(error);
@@ -153,7 +158,7 @@ export const getFileExtension = (mimetype: string): string => {
     'application/msword': '.doc',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
     'text/plain': '.txt',
-    'application/rtf': '.rtf'
+    'application/rtf': '.rtf',
   };
 
   return mimeToExt[mimetype] || '.bin';

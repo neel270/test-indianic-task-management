@@ -1,5 +1,4 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button } from '@/components/ui';
 import { useForgotPassword, useVerifyOTP } from '@/hooks/useAuth';
 import { otpValidationSchema } from '@/utils/validationSchemas';
 import { Form, Formik, FormikProps } from 'formik';
@@ -51,7 +50,7 @@ const OTPVerification = () => {
   const handleOtpSubmit = async (values: OTPFormValues) => {
     try {
       const response = await verifyOTPMutation.mutateAsync({ email, otp: values.otp });
-      navigate(`/set-password?token=${response.resetToken}&email=${email}`);
+      navigate(`/set-password?token=${response.data.resetToken}&email=${email}`);
     } catch {
       // Error is handled by the mutation's onError callback
     }

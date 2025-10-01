@@ -79,6 +79,59 @@ export class TaskService {
     return await this.taskRepository.save(task);
   }
 
+  async createTaskWithAttachments(
+    title: string,
+    description: string,
+    dueDate: Date,
+    userId: string,
+    assignedTo: string,
+    priority: 'Low' | 'Medium' | 'High' = 'Medium',
+    tags: string[] = [],
+    attachments: string[] = []
+  ): Promise<TaskEntity> {
+    // Verify user exists
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (!user.isActive) {
+      throw new Error('User account is deactivated');
+    }
+    console.log(
+      'Creating task with attachments:',
+      {
+        title,
+        description,
+        status: 'Pending',
+        dueDate,
+        userId,
+        assignedTo,
+        priority,
+        tags,
+        attachments,
+      },
+      'for user:',
+      userId
+    );
+
+    // Create task entity with attachments
+    const task = TaskEntity.create({
+      title,
+      description,
+      status: 'Pending',
+      dueDate,
+      userId,
+      assignedTo,
+      priority,
+      tags,
+      attachments,
+    });
+
+    // Save task
+    return await this.taskRepository.save(task);
+  }
+
   async getTaskById(taskId: string, userId?: string): Promise<TaskEntity> {
     const task = await this.taskRepository.findById(taskId);
     if (!task) {
@@ -100,7 +153,7 @@ export class TaskService {
     userId: string,
     page: number = 1,
     limit: number = 10,
-    status?: 'Pending' | 'Completed'
+    status?: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled'
   ): Promise<PaginatedTasksResult> {
     // Verify user exists
     const user = await this.userRepository.findById(userId);
@@ -171,10 +224,11 @@ export class TaskService {
     updates: {
       title?: string;
       description?: string;
-      status?: 'Pending' | 'Completed';
+      status?: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
       dueDate?: Date;
       priority?: 'Low' | 'Medium' | 'High';
       tags?: string[];
+      attachments?: string[];
     },
     userId?: string
   ): Promise<TaskEntity> {
@@ -210,6 +264,7 @@ export class TaskService {
       dueDate: updates.dueDate,
       priority: updates.priority,
       tags: updates.tags,
+      attachments: updates.attachments,
     });
 
     return await this.taskRepository.update(taskId, updatedTask);
@@ -310,5 +365,46 @@ export class TaskService {
 
   async getTasksDueSoon(hoursThreshold: number = 24): Promise<TaskEntity[]> {
     return await this.taskRepository.findTasksDueSoon(hoursThreshold);
+  }
+
+  // Transform attachment paths to URLs for API responses
+  transformAttachmentsForResponse(attachments: string[], userId: string, taskId: string): string[] {
+    if (!attachments || attachments.length === 0) {
+      return [];
+    }
+
+    const baseUrl = process.env.BASE_URL ?? 'http://localhost:3000';
+    const apiPrefix = process.env.API_PREFIX ?? '/api';
+
+    return attachments.map(attachment => {
+      // If it's already a full URL, return as is
+      if (attachment.startsWith('http://') || attachment.startsWith('https://')) {
+        return attachment;
+      }
+
+      // Otherwise, construct the URL for serving the file
+      return `${baseUrl}${apiPrefix}/tasks/attachments/${userId}/${taskId}/${attachment}`;
+    });
+  }
+
+  // Transform task entity for API response with proper attachment URLs
+  transformTaskForResponse(task: TaskEntity, _requestingUserId?: string): any {
+    const taskObj = {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      status: task.status.toLowerCase(),
+      priority: task.priority.toLowerCase(),
+      assignedTo: task.assignedTo,
+      createdBy: task.userId,
+      dueDate: task.dueDate.toISOString(),
+      completedAt: task.completedAt?.toISOString(),
+      tags: task.tags,
+      attachments: this.transformAttachmentsForResponse(task.attachments, task.userId, task.id),
+      createdAt: task.createdAt.toISOString(),
+      updatedAt: task.updatedAt.toISOString(),
+    };
+
+    return taskObj;
   }
 }

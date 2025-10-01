@@ -27,8 +27,8 @@ export class EmailService {
       secure: false,
       auth: {
         user: env.emailUser,
-        pass: env.emailPassword
-      }
+        pass: env.emailPassword,
+      },
     });
 
     this.initializeTemplates();
@@ -69,7 +69,7 @@ Priority: {{priority}}
 View Task: {{actionUrl}}
 
 Best regards,
-Task Management System`
+Task Management System`,
     });
 
     // Task created template
@@ -104,7 +104,7 @@ Priority: {{priority}}
 View Task: {{actionUrl}}
 
 Best regards,
-Task Management System`
+Task Management System`,
     });
 
     // Task completed template
@@ -137,7 +137,7 @@ Completed At: {{completedAt}}
 View Task: {{actionUrl}}
 
 Best regards,
-Task Management System`
+Task Management System`,
     });
   }
 
@@ -172,7 +172,7 @@ Task Management System`
         to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
         subject,
         html: htmlContent,
-        text: textContent
+        text: textContent,
       };
 
       const result = await this.transporter.sendMail(mailOptions);
@@ -180,7 +180,9 @@ Task Management System`
       console.log('Email sent successfully:', result.messageId);
     } catch (error) {
       console.error('Failed to send email:', error);
-      throw new Error(`Email sending failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Email sending failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -189,16 +191,16 @@ Task Management System`
       taskTitle: taskData.title,
       taskDescription: taskData.description,
       dueDate: new Date(taskData.dueDate).toLocaleDateString(),
-      hoursUntilDue: hoursUntilDue,
+      hoursUntilDue,
       priority: taskData.priority || 'Medium',
-      actionUrl: `${env.frontendUrl || 'http://localhost:3000'}/tasks/${taskData.id}`
+      actionUrl: `${env.frontendUrl || 'http://localhost:3000'}/tasks/${taskData.id}`,
     };
 
     const emailData = {
       to: taskData.userEmail || 'user@example.com',
       subject: this.replaceTemplateVariables('Task Reminder: {{taskTitle}}', data),
       template: 'task-reminder',
-      data
+      data,
     };
 
     await this.sendEmail(emailData);
@@ -210,14 +212,14 @@ Task Management System`
       taskDescription: taskData.description,
       dueDate: new Date(taskData.dueDate).toLocaleDateString(),
       priority: taskData.priority || 'Medium',
-      actionUrl: `${env.frontendUrl || 'http://localhost:3000'}/tasks/${taskData.id}`
+      actionUrl: `${env.frontendUrl || 'http://localhost:3000'}/tasks/${taskData.id}`,
     };
 
     const emailData = {
       to: taskData.userEmail || 'user@example.com',
       subject: this.replaceTemplateVariables('New Task Created: {{taskTitle}}', data),
       template: 'task-created',
-      data
+      data,
     };
 
     await this.sendEmail(emailData);
@@ -228,14 +230,14 @@ Task Management System`
       taskTitle: taskData.title,
       taskDescription: taskData.description,
       completedAt: new Date().toLocaleDateString(),
-      actionUrl: `${env.frontendUrl || 'http://localhost:3000'}/tasks/${taskData.id}`
+      actionUrl: `${env.frontendUrl || 'http://localhost:3000'}/tasks/${taskData.id}`,
     };
 
     const emailData = {
       to: taskData.userEmail || 'user@example.com',
       subject: this.replaceTemplateVariables('Task Completed: {{taskTitle}}', data),
       template: 'task-completed',
-      data
+      data,
     };
 
     await this.sendEmail(emailData);

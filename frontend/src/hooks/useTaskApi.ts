@@ -1,54 +1,32 @@
 import apiClient from '@/lib/axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toastError, toastSuccess } from './use-toast';
+import { Task, TaskStatus, TaskPriority, TaskFilters } from '../types/task';
 
-// Types
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
-  dueDate: string;
-  userId: string;
-  assignedTo: string;
-  createdBy?: string;
-  createdAt: string;
-  updatedAt: string;
-  completedAt?: string;
-  attachments?: string[];
-  priority: 'Low' | 'Medium' | 'High';
-  tags?: string[];
-  file?: {
-    filename: string;
-    originalName: string;
-    path: string;
-    size: number;
-    mimetype: string;
-  };
-}
+// Re-export for backward compatibility
+export type { Task, TaskStatus, TaskPriority, TaskFilters };
 
 interface CreateTaskRequest {
   title: string;
   description: string;
   dueDate: string; // ISO date string
-  status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
-  priority?: 'Low' | 'Medium' | 'High';
+  status: TaskStatus;
+  priority?: TaskPriority;
   tags?: string[];
   assignedTo?: string;
   userId?: string;
+  attachments: File[];
 }
 
 interface UpdateTaskRequest {
   title?: string;
   description?: string;
-  status?: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
+  status?: TaskStatus;
   dueDate?: string;
-}
-
-interface TaskFilters {
-  status?: string;
-  startDate?: string;
-  endDate?: string;
+  priority?: TaskPriority;
+  tags?: string[];
+  attachments?: File[];
+  assignedTo?: string;
 }
 
 interface TaskListResponse {
@@ -108,8 +86,20 @@ export const useTask = (id: string) => {
   return useQuery({
     queryKey: ['tasks', 'detail', id],
     queryFn: async (): Promise<Task> => {
-      const response = await apiClient.get<Task>(`/tasks/${id}`);
-      return response.data;
+      const response = await apiClient.get<{ success: boolean; message: string; data: any }>(
+        `/tasks/${id}`
+      );
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to fetch task');
+      }
+
+      // Map backend task data to frontend Task format
+      const backendTask = response.data.data;
+      return {
+        ...backendTask,
+        status: backendTask.status,
+        priority: backendTask.priority as TaskPriority,
+      };
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -121,7 +111,37 @@ export const useCreateTask = () => {
 
   return useMutation({
     mutationFn: async (taskData: CreateTaskRequest): Promise<Task> => {
-      const response = await apiClient.post<Task>('/tasks', taskData);
+      const formData = new FormData();
+
+      // Add text fields to FormData
+      formData.append('title', taskData.title);
+      formData.append('description', taskData.description);
+      formData.append('dueDate', taskData.dueDate);
+      formData.append('status', taskData.status);
+      formData.append('assignedTo', taskData.assignedTo || '');
+
+      if (taskData.priority) {
+        formData.append('priority', taskData.priority);
+      }
+
+      if (taskData.tags && taskData.tags.length > 0) {
+        taskData.tags.forEach((tags, index) => {
+          formData.append(`tags[${index}]`, tags);
+        });
+      }
+
+      // Add files to FormData
+      if (taskData.attachments && taskData.attachments.length > 0) {
+        taskData.attachments.forEach(file => {
+          formData.append(`attachments`, file);
+        });
+      }
+
+      const response = await apiClient.post<Task>('/tasks', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       return response.data;
     },
     onSuccess: data => {
@@ -150,8 +170,52 @@ export const useUpdateTask = () => {
       id: string;
       updates: UpdateTaskRequest;
     }): Promise<Task> => {
-      const response = await apiClient.put<Task>(`/tasks/${id}`, updates);
-      return response.data;
+      const formData = new FormData();
+      console.log('Updating task with ID:', id, 'and updates:', updates);
+      // Add text fields to FormData
+      if (updates.title) formData.append('title', updates.title);
+      if (updates.description) formData.append('description', updates.description);
+      if (updates.dueDate) formData.append('dueDate', updates.dueDate);
+      if (updates.status) formData.append('status', updates.status);
+      if (updates.assignedTo) formData.append('assignedTo', updates.assignedTo);
+
+      if (updates.priority) {
+        formData.append('priority', updates.priority);
+      }
+
+      if (updates.tags && updates.tags.length > 0) {
+        updates.tags.forEach((tags, index) => {
+          formData.append(`tags[${index}]`, tags);
+        });
+      }
+
+      // Add files to FormData
+      if (updates.attachments && updates.attachments.length > 0) {
+        updates.attachments.forEach(file => {
+          formData.append(`attachments`, file);
+        });
+      }
+
+      const response = await apiClient.post<{ success: boolean; message: string; data: any }>(
+        `/tasks/${id}`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to update task');
+      }
+
+      // Map backend response to frontend format
+      const backendTask = response.data.data;
+      return {
+        ...backendTask,
+        status: backendTask.status,
+        priority: backendTask.priority as TaskPriority,
+      };
     },
     onSuccess: data => {
       // Update the task in cache
@@ -218,9 +282,23 @@ export const useUpdateTaskStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }): Promise<Task> => {
-      const response = await apiClient.patch<Task>(`/tasks/${id}/status`, { status });
-      return response.data;
+    mutationFn: async ({ id, status }: { id: string; status: TaskStatus }): Promise<Task> => {
+      const backendStatus = status;
+      const response = await apiClient.patch<{ success: boolean; message: string; data: any }>(
+        `/tasks/${id}/${backendStatus}`,
+        { status: backendStatus }
+      );
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to update task status');
+      }
+
+      // Map backend response to frontend format
+      const backendTask = response.data.data;
+      return {
+        ...backendTask,
+        status: backendTask.status,
+        priority: backendTask.priority as TaskPriority,
+      };
     },
     onSuccess: data => {
       // Update the task in cache
@@ -245,8 +323,14 @@ export const useAddTaskAttachment = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await apiClient.post<Task>(`/tasks/${id}/attachments`, formData);
-      return response.data;
+      const response = await apiClient.post<{ success: boolean; message: string; data: Task }>(
+        `/tasks/${id}/attachments`,
+        formData
+      );
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to add attachment');
+      }
+      return response.data.data;
     },
     onSuccess: data => {
       // Update the task in cache

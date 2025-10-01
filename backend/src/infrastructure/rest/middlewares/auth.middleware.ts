@@ -13,7 +13,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     if (!authHeader) {
       res.status(401).json({
         success: false,
-        error: 'Access token is required'
+        error: 'Access token is required',
       });
       return;
     }
@@ -23,7 +23,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     if (!token) {
       res.status(401).json({
         success: false,
-        error: 'Invalid token format'
+        error: 'Invalid token format',
       });
       return;
     }
@@ -34,7 +34,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   } catch (error) {
     res.status(401).json({
       success: false,
-      error: 'Invalid or expired token'
+      error: 'Invalid or expired token',
     });
   }
 };

@@ -16,7 +16,11 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
-    "format:check": "prettier --check src/**/*.ts"
+    "format:check": "prettier --check src/**/*.ts",
+    "seed": "ts-node src/infrastructure/database/seeders/index.ts seed",
+    "seed:clear": "ts-node src/infrastructure/database/seeders/index.ts clear",
+    "seed:users": "ts-node src/infrastructure/database/seeders/index.ts seed:users",
+    "seed:tasks": "ts-node src/infrastructure/database/seeders/index.ts seed:tasks"
   },
   "keywords": [
     "nodejs",
@@ -53,7 +57,8 @@
     "sharp": "^0.33.4",
     "fast-csv": "^4.3.6",
     "csv-writer": "^1.6.0",
-    "mongoose": "^8.18.3"
+    "mongoose": "^8.18.3",
+    "morgan": "^1.10.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

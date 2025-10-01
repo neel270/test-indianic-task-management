@@ -1,28 +1,36 @@
 import { useFormik } from 'formik';
-import { Camera, Loader2, Save } from 'lucide-react';
+import { Camera, Loader2, Save, Key, Settings } from 'lucide-react';
 import React, { useState } from 'react';
 import * as Yup from 'yup';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
-import { Button } from '../../../components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '../../../components/ui/card';
-import { Input } from '../../../components/ui/input';
-import { Label } from '../../../components/ui/label';
-import { Separator } from '../../../components/ui/separator';
+  Button,
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Input,
+  Label,
+  Separator,
+} from '@/components/ui';
+
 import { useToast } from '../../../hooks/use-toast';
-import { useAppSelector } from '../../../store/hooks';
+import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { useUpdateProfile } from '../../../hooks/useAuthApi';
 import { logger } from '../../../lib/logger';
 import { selectUser } from '@/store/slices/authSlice';
+import { updateProfileSuccess } from '@/store/slices/authSlice';
+import { useNavigate } from 'react-router-dom';
 
 const Profile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const { toast } = useToast();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const updateProfileMutation = useUpdateProfile();
 
   // Get user data from Redux store
@@ -46,25 +54,106 @@ const Profile: React.FC = () => {
     }),
     onSubmit: async values => {
       try {
-        await updateProfileMutation.mutateAsync(values);
+        const result = await updateProfileMutation.mutateAsync(values);
         setIsEditing(false);
         formik.resetForm();
-      } catch {
+
+        // Update Redux state with the new user data
+        if (result?.user) {
+          dispatch(updateProfileSuccess(result.user));
+        }
+
+        logger.info('Profile update completed', { userId: user?.id });
+      } catch (error) {
         // Error handling is done in the mutation
-        logger.error('Profile update failed');
+        logger.error('Profile update failed', { error: error instanceof Error ? error.message : 'Unknown error' });
       }
     },
   });
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // TODO: Implement avatar upload
-      logger.info('Avatar upload initiated', { fileName: file.name, fileSize: file.size });
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
       toast({
-        title: 'Avatar upload',
-        description: 'Avatar upload functionality will be implemented.',
+        title: 'Invalid file type',
+        description: 'Please select an image file.',
+        variant: 'destructive',
       });
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Image size must be less than 5MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('profileImage', file);
+
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/auth/upload-profile-image', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+        throw new Error(errorData.message ?? 'Upload failed');
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: 'Avatar uploaded',
+          description: 'Profile image updated successfully!',
+        });
+
+        // Update Redux store with new profile image
+        if (user && result.data?.imageUrl) {
+          dispatch(updateProfileSuccess({
+            ...user,
+            profileImage: result.data.imageUrl
+          }));
+
+          // Force refresh the avatar by updating the src
+          const avatarImg = document.querySelector(`img[alt="${user.firstName} ${user.lastName}"]`) as HTMLImageElement;
+          if (avatarImg) {
+            avatarImg.src = `${result.data.imageUrl}?t=${Date.now()}`;
+          }
+        }
+
+        logger.info('Avatar upload completed', {
+          fileName: file.name,
+          fileSize: file.size,
+          imageUrl: result.data?.imageUrl
+        });
+      } else {
+        throw new Error(result.message ?? 'Upload failed');
+      }
+    } catch (error) {
+      logger.error('Avatar upload failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+      toast({
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'Failed to upload avatar.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -98,13 +187,18 @@ const Profile: React.FC = () => {
                   {user.lastName?.[0]}
                 </AvatarFallback>
               </Avatar>
-              <label className='absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1 cursor-pointer hover:bg-blue-700 transition-colors'>
-                <Camera className='w-4 h-4' />
+              <label className={`absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1 cursor-pointer hover:bg-blue-700 transition-colors ${isUploadingAvatar ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                {isUploadingAvatar ? (
+                  <Loader2 className='w-4 h-4 animate-spin' />
+                ) : (
+                  <Camera className='w-4 h-4' />
+                )}
                 <input
                   type='file'
                   accept='image/*'
                   onChange={handleAvatarChange}
                   className='hidden'
+                  disabled={isUploadingAvatar}
                 />
               </label>
             </div>
@@ -241,6 +335,31 @@ const Profile: React.FC = () => {
                 </div>
               )}
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Account Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              <Settings className='h-5 w-5' />
+              Account Actions
+            </CardTitle>
+            <CardDescription>
+              Manage your account security and settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className='space-y-4'>
+              <Button
+                variant='outline'
+                className='w-full justify-start'
+                onClick={() => navigate('/auth/change-password')}
+              >
+                <Key className='w-4 h-4 mr-2' />
+                Change Password
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

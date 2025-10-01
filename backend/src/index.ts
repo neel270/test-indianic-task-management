@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
-import { logger } from "./infrastructure/config";
+import { logger } from './infrastructure/config';
 import { initializeDatabase } from './infrastructure/database';
 import { Server } from './server';
 
@@ -30,21 +30,24 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   logger.error('Uncaught Exception:', error);
   process.exit(1);
 });
 
 // Graceful shutdown
-process.on('SIGTERM', async () => {
+process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
   process.exit(0);
 });
 
-process.on('SIGINT', async () => {
+process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down gracefully');
   process.exit(0);
 });
 
 // Start the application
-bootstrap();
+bootstrap().catch(error => {
+  logger.error('Failed to start application:', error);
+  process.exit(1);
+});

@@ -1,3 +1,4 @@
+import { env } from '../../config';
 import { TaskEntity } from '../../../domain/entities';
 
 export interface TaskModel {
@@ -11,9 +12,9 @@ export interface TaskModel {
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
-  attachments?: string;
+  attachments?: string[];
   priority: 'Low' | 'Medium' | 'High';
-  tags?: string;
+  tags?: string[];
 }
 
 export class TaskModelMapper {
@@ -30,25 +31,31 @@ export class TaskModelMapper {
       model.createdAt,
       model.updatedAt,
       model.completedAt,
-      model.attachments ? JSON.parse(model.attachments) : [],
+      model.attachments ?? [],
       model.priority,
-      model.tags ? JSON.parse(model.tags) : []
+      model.tags ?? []
     );
   }
-
   static toDomainFromMongoose(mongooseDoc: any): TaskEntity {
     // Handle populated userId - extract ObjectId if it's a populated document
-    const userId = mongooseDoc.userId?._id ?
-      mongooseDoc.userId._id.toString() :
-      mongooseDoc.userId?.toString() || mongooseDoc.userId;
-
+    let userId = mongooseDoc.userId?._id ? mongooseDoc.userId._id.toString() : null;
+    userId = userId ?? (mongooseDoc.userId ? mongooseDoc.userId.toString() : null);
     // Handle populated assignedTo - extract ObjectId if it's a populated document
-    const assignedTo = mongooseDoc.assignedTo?._id ?
-      mongooseDoc.assignedTo._id.toString() :
-      mongooseDoc.assignedTo?.toString() || mongooseDoc.assignedTo;
-
+    let assignedTo = mongooseDoc.assignedTo?._id ? mongooseDoc.assignedTo._id.toString() : null;
+    assignedTo = assignedTo ?? (mongooseDoc.assignedTo ? mongooseDoc.assignedTo.toString() : null);
+    let attachments = Array.isArray(mongooseDoc.attachments) ? mongooseDoc.attachments : [];
+    attachments = attachments.map((attachment: string | null) => {
+      const fileUrl = `${env.baseUrl}/uploads/tasks/${userId}/${
+        mongooseDoc.id ?? mongooseDoc._id?.toString()
+      }/${attachment}`;
+      return fileUrl;
+    });
+    console.log('Mapping Mongoose Document to TaskEntity:', mongooseDoc);
+    console.log('Extracted userId:', userId);
+    console.log('Extracted assignedTo:', assignedTo);
+    console.log('Extracted attachments:', attachments);
     return new TaskEntity(
-      mongooseDoc.id || mongooseDoc._id?.toString(),
+      mongooseDoc.id ?? mongooseDoc._id?.toString(),
       mongooseDoc.title,
       mongooseDoc.description,
       mongooseDoc.status,
@@ -58,9 +65,9 @@ export class TaskModelMapper {
       mongooseDoc.createdAt,
       mongooseDoc.updatedAt,
       mongooseDoc.completedAt,
-      mongooseDoc.attachments || [],
+      attachments,
       mongooseDoc.priority,
-      mongooseDoc.tags || []
+      mongooseDoc.tags ?? []
     );
   }
 
@@ -77,9 +84,9 @@ export class TaskModelMapper {
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
       completedAt: domain.completedAt,
-      attachments: JSON.stringify(domain.attachments),
+      attachments: domain.attachments,
       priority: domain.priority,
-      tags: JSON.stringify(domain.tags)
+      tags: domain.tags,
     };
   }
 }

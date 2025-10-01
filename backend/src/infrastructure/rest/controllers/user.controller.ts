@@ -1,110 +1,56 @@
 import { Request, Response } from 'express';
-import { ImageService } from '../../services/image.service';
+import { ListUsersUseCase } from '../../../application/use-cases/user/list-users.usecase';
+import { ToggleUserStatusUseCase } from '../../../application/use-cases/user/toggle-user-status.usecase';
 
 export class UserController {
-  private imageService: ImageService;
+  private listUsersUseCase: ListUsersUseCase = new ListUsersUseCase();
+  private toggleUserStatusUseCase: ToggleUserStatusUseCase = new ToggleUserStatusUseCase();
+  constructor() {}
 
-  constructor(
-    private createUserUseCase: any,
-    private loginUserUseCase: any
-  ) {
-    this.imageService = new ImageService();
-  }
-
-  async createUser(req: Request, res: Response): Promise<void> {
+  async listUsers(req: Request, res: Response): Promise<void> {
     try {
-      const userData = req.body;
-      const result = await this.createUserUseCase.execute(userData);
-      res.status(201).json({
+      const user = (req as any).user;
+      const { page, limit, role, isActive, search } = req.query;
+
+      const filters = {
+        page: page ? parseInt(page as string) : undefined,
+        limit: limit ? parseInt(limit as string) : undefined,
+        role: role as 'admin' | 'user',
+        isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+        search: search as string,
+      };
+
+      const result = await this.listUsersUseCase.execute(user.role, filters);
+
+      res.status(200).json({
         success: true,
-        data: result,
-        message: 'User created successfully'
+        data: result.users,
+        pagination: result.pagination,
       });
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        error: error.message
+        error: error.message,
       });
     }
   }
 
-  async loginUser(req: Request, res: Response): Promise<void> {
+  async toggleUserStatus(req: Request, res: Response): Promise<void> {
     try {
-      const credentials = req.body;
-      const result = await this.loginUserUseCase.execute(credentials);
+      const user = (req as any).user;
+      const { id } = req.params;
+
+      const result = await this.toggleUserStatusUseCase.execute(id, user.role, user.id);
+
       res.status(200).json({
         success: true,
         data: result,
-        message: 'Login successful'
+        message: 'User status updated successfully',
       });
     } catch (error: any) {
-      res.status(401).json({
+      res.status(400).json({
         success: false,
-        error: error.message
-      });
-    }
-  }
-
-  async getProfile(req: Request, res: Response): Promise<void> {
-    try {
-      const userId = (req as any).user.id;
-      // Implementation for getting user profile
-      res.status(200).json({
-        success: true,
-        data: { id: userId, message: 'Profile retrieved successfully' }
-      });
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        error: error.message
-      });
-    }
-  }
-
-  async uploadProfileImage(req: Request, res: Response): Promise<void> {
-    try {
-      const userId = (req as any).user.id;
-      const file = req.file;
-
-      if (!file) {
-        res.status(400).json({
-          success: false,
-          error: 'No image file provided'
-        });
-        return;
-      }
-
-      if (!userId) {
-        res.status(401).json({
-          success: false,
-          error: 'User not authenticated'
-        });
-        return;
-      }
-
-      // Resize the profile image using Sharp
-      await this.imageService.resizeProfileImage(file.path, userId);
-
-      // Update user profile with new image path
-      const imageUrl = `/uploads/profiles/${userId}/${file.filename}`;
-
-      // Update user in database (assuming there's an update method)
-      // For now, we'll just return the image URL
-      res.status(200).json({
-        success: true,
-        message: 'Profile image uploaded and resized successfully',
-        data: {
-          imageUrl,
-          originalName: file.originalname,
-          size: file.size,
-          mimetype: file.mimetype
-        }
-      });
-    } catch (error: any) {
-      console.error('Error uploading profile image:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to upload profile image'
+        error: error.message,
       });
     }
   }

@@ -1,7 +1,13 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Button,
+  Input,
+  Label,
+} from '@/components/ui';
 import { useSetNewPassword } from '@/hooks/useAuthApi';
 import { setPasswordValidationSchema } from '@/utils/validationSchemas';
 import { Field, Form, Formik, FormikProps } from 'formik';

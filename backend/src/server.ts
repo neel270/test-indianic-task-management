@@ -1,5 +1,6 @@
 import cors from 'cors';
 import express from 'express';
+import morgan from 'morgan';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import helmet from 'helmet';
@@ -7,7 +8,6 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import { env } from './infrastructure/config/env';
 import { logger } from './infrastructure/config/logger';
-import { UserController } from './infrastructure/rest/controllers/user.controller';
 import { errorMiddleware } from './infrastructure/rest/middlewares/error.middleware';
 import {
   authRateLimit,
@@ -22,11 +22,12 @@ import {
   validateRequest,
   validateRequestSize,
 } from './infrastructure/rest/middlewares/security.middleware';
-import { createUserRoutes } from './infrastructure/rest/routes/user.routes';
 import { createAuthRoutes } from './infrastructure/rest/routes/auth.routes';
 import { createTaskRoutes } from './infrastructure/rest/routes/task.routes';
+import { createUserRoutes } from './infrastructure/rest/routes/user.routes';
 import { TaskSocket } from './infrastructure/sockets/task.socket';
 import { TaskReminderJob } from './infrastructure/jobs/task-reminder.job';
+import path from 'path';
 
 export class Server {
   private app: express.Application;
@@ -47,8 +48,8 @@ export class Server {
     this.app.use(securityLogger); // Enhanced security logging
     this.app.use(generalRateLimit); // General rate limiting for all routes
     this.app.use(securityHeaders); // Additional security headers
-
-    // Existing helmet configuration (enhanced with custom headers)
+    this.app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+    this.app.use(morgan('combined')); // Existing helmet configuration (enhanced with custom headers)
     this.app.use(
       helmet({
         contentSecurityPolicy: {
@@ -70,7 +71,7 @@ export class Server {
       cors({
         origin: (origin, callback) => {
           console.log(origin, env.allowedOrigins);
-          const allowedOrigins = env.allowedOrigins?.split(',') || [
+          const allowedOrigins = env.allowedOrigins?.split(',') ?? [
             'http://localhost:8080',
             'http://localhost:3000',
             'http://localhost:5000',
@@ -96,14 +97,14 @@ export class Server {
     // Body parsing middleware with security limits
     this.app.use(
       express.json({
-        limit: '1mb', // Reduced from 10mb for better security
+        limit: '512mb', // Reduced from 10mb for better security
         strict: true, // Only accept objects and arrays
       })
     );
     this.app.use(
       express.urlencoded({
         extended: true,
-        limit: '1mb', // Reduced from 10mb for better security
+        limit: '512mb', // Reduced from 10mb for better security
         parameterLimit: 100, // Limit number of parameters
       })
     );
@@ -181,11 +182,11 @@ export class Server {
         cors: {
           origin: (origin, callback) => {
             console.log('SocketIO CORS check for origin:', origin);
-            const allowedOrigins = env.allowedOrigins?.split(',') || [
-            'http://localhost:8080',
-            'http://localhost:3000',
-            'http://localhost:5000',
-          ];
+            const allowedOrigins = env.allowedOrigins?.split(',') ?? [
+              'http://localhost:8080',
+              'http://localhost:3000',
+              'http://localhost:5000',
+            ];
             console.log('Allowed origins:', allowedOrigins);
             if (!origin || allowedOrigins.includes(origin)) {
               callback(null, true);
@@ -230,24 +231,23 @@ export class Server {
         timestamp: new Date().toISOString(),
         environment: env.nodeEnv,
         docs: '/api-docs',
-        socketConnected: this.taskSocket?.getOnlineUsersCount() || 0,
-        reminderJobRunning: this.taskReminderJob?.getStatus().isRunning || false,
+        socketConnected: this.taskSocket?.getOnlineUsersCount() ?? 0,
+        reminderJobRunning: this.taskReminderJob?.getStatus().isRunning ?? false,
       });
     });
 
     // API routes with specific rate limiting
-    const userController = new UserController(null, null); // TODO: Inject dependencies
 
     // Apply stricter rate limiting for authentication routes
     this.app.use('/api/v1/users/auth', authRateLimit);
     this.app.use('/api/v1/users/login', authRateLimit);
     this.app.use('/api/v1/users/register', strictRateLimit);
 
-    this.app.use('/api/v1/users', createUserRoutes(userController));
     this.app.use('/api/v1/auth', createAuthRoutes());
     this.app.use('/api/v1/tasks', createTaskRoutes());
+    this.app.use('/api/v1/users', createUserRoutes());
     // 404 handler
-    this.app.get('*', (_req, res) => {
+    this.app.use('*', (_req, res) => {
       res.status(404).send({ message: 'Not found', data: {} });
     });
   }

@@ -3,11 +3,9 @@ import { CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as Yup from 'yup';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Label } from '../../../components/ui/label';
 import { useToast } from '../../../hooks/use-toast';
 import { useLogin } from '../../../hooks/useAuth';
+import { Button, Input, Label } from '@/components/ui';
 
 const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);

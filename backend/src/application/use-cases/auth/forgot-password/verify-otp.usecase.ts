@@ -14,8 +14,8 @@ export class VerifyOTPUseCase {
     taskRepository?: ITaskRepository,
     redisService?: RedisService
   ) {
-    const userRepo = userRepository || new UserRepositoryImpl();
-    const taskRepo = taskRepository || new TaskRepositoryImpl();
+    const userRepo = userRepository ?? new UserRepositoryImpl();
+    const taskRepo = taskRepository ?? new TaskRepositoryImpl();
     this.authService = new AuthService(userRepo, taskRepo, redisService);
   }
 
@@ -25,10 +25,12 @@ export class VerifyOTPUseCase {
 
       return {
         resetToken: result.resetToken,
-        message: 'OTP verified successfully. You can now reset your password.'
+        message: 'OTP verified successfully. You can now reset your password.',
       };
     } catch (error) {
-      throw new Error(`OTP verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `OTP verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 }

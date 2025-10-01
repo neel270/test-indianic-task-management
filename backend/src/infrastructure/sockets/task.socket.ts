@@ -66,7 +66,7 @@ export class TaskSocket {
       hasToMethod,
       hasInMethod,
       constructorName,
-      isValid: true // If we get here, basic validation passed
+      isValid: true, // If we get here, basic validation passed
     });
 
     // Accept the server if it has the basic required methods
@@ -74,7 +74,9 @@ export class TaskSocket {
   }
 
   private initializeSocketHandlers(): void {
-    if (!this.io) return;
+    if (!this.io) {
+      return;
+    }
 
     this.io.on('connection', (socket: AuthenticatedSocket) => {
       console.log('User connected:', socket.id);

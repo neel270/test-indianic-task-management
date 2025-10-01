@@ -8,12 +8,9 @@ import { AuthService } from '../../services/auth.service';
 export class LoginUseCase {
   private authService: AuthService;
 
-  constructor(
-    userRepository?: IUserRepository,
-    taskRepository?: ITaskRepository
-  ) {
-    const userRepo = userRepository || new UserRepositoryImpl();
-    const taskRepo = taskRepository || new TaskRepositoryImpl();
+  constructor(userRepository?: IUserRepository, taskRepository?: ITaskRepository) {
+    const userRepo = userRepository ?? new UserRepositoryImpl();
+    const taskRepo = taskRepository ?? new TaskRepositoryImpl();
     this.authService = new AuthService(userRepo, taskRepo);
   }
 
@@ -30,9 +27,9 @@ export class LoginUseCase {
           email: result.user.email,
           firstName: result.user.firstName,
           lastName: result.user.lastName,
-          role: result.user.role
+          role: result.user.role,
         },
-        tokens: result.tokens
+        tokens: result.tokens,
       };
     } catch (error) {
       throw new Error(`Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

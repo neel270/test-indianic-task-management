@@ -1,4 +1,4 @@
-import { Bell, CheckSquare, LayoutDashboard, LogOut, Menu, Settings, Users } from 'lucide-react';
+import { Bell, CheckSquare, LayoutDashboard, LogOut, Menu, Settings } from 'lucide-react';
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
@@ -31,7 +31,6 @@ const MainLayout: React.FC = () => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Tasks', href: '/tasks', icon: CheckSquare },
-    { name: 'Users', href: '/users', icon: Users },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 

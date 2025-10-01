@@ -15,6 +15,7 @@ const MainLayout = lazy(() => import('../layouts/MainLayout'));
 // Auth Pages
 const Login = lazy(() => import('../pages/auth/Login/Login'));
 const Profile = lazy(() => import('../pages/auth/Profile/Profile'));
+const ChangePassword = lazy(() => import('../pages/auth/ChangePassword'));
 const Register = lazy(() => import('../pages/auth/Register/Register'));
 const ForgotPassword = lazy(() => import('../pages/auth/forgot-password/ForgotPassword'));
 const OTPVerification = lazy(() => import('../pages/auth/forgot-password/OTPVerification'));
@@ -66,14 +67,13 @@ const AppRoutes: React.FC = () => {
           {/* Task Management */}
           <Route path='/tasks' element={<TaskList />} />
           <Route path='/tasks/new' element={<TaskForm />} />
-          <Route path='/tasks/:id' element={<TaskDetail />} />
+          <Route path='/tasks/:id' element={ <Suspense fallback={<PageLoader />}><TaskDetail /></Suspense>} />
           <Route path='/tasks/:id/edit' element={<TaskForm />} />
 
-          {/* User Management */}
-          <Route path='/users' element={<div>Users Page</div>} />
 
           {/* Profile */}
           <Route path='/profile' element={<Profile />} />
+          <Route path='/auth/change-password' element={<ChangePassword />} />
           <Route path='/settings' element={<div>Settings Page</div>} />
         </Route>
 

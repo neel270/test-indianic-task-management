@@ -93,7 +93,7 @@ const userSchema = new Schema<IUserDocument>(
   {
     timestamps: true,
     toJSON: {
-      transform: function (_doc, ret: any) {
+      transform(_doc, ret: any) {
         ret.id = ret._id;
         delete ret._id;
         delete ret.__v;
@@ -113,10 +113,12 @@ userSchema.index({ createdAt: -1 });
 userSchema.pre('save', async function (next) {
   const user = this as IUserDocument;
 
-  if (!user.isModified('password')) return next();
+  if (!user.isModified('password')) {
+    return next();
+  }
 
   try {
-    user.password = await bcrypt.hash(this.password as string, 12);
+    user.password = await bcrypt.hash(this.password, 12);
     next();
   } catch (error: any) {
     next(error);
@@ -127,7 +129,7 @@ userSchema.pre('save', async function (next) {
 userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
   try {
     return await bcrypt.compare(candidatePassword, this.password);
-  } catch (error) {
+  } catch {
     throw new Error('Password comparison failed');
   }
 };

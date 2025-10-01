@@ -14,12 +14,14 @@ export class SetPasswordUseCase {
     taskRepository?: ITaskRepository,
     redisService?: RedisService
   ) {
-    const userRepo = userRepository || new UserRepositoryImpl();
-    const taskRepo = taskRepository || new TaskRepositoryImpl();
+    const userRepo = userRepository ?? new UserRepositoryImpl();
+    const taskRepo = taskRepository ?? new TaskRepositoryImpl();
     this.authService = new AuthService(userRepo, taskRepo, redisService);
   }
 
-  async execute(setPasswordData: SetNewPasswordDto | ResetPasswordWithEmailDto): Promise<{ message: string }> {
+  async execute(
+    setPasswordData: SetNewPasswordDto | ResetPasswordWithEmailDto
+  ): Promise<{ message: string }> {
     try {
       // Check if it's the new format with email or old format
       if ('email' in setPasswordData) {
@@ -31,14 +33,19 @@ export class SetPasswordUseCase {
         );
       } else {
         // Old format - for backward compatibility
-        await this.authService.resetPassword(setPasswordData.resetToken, setPasswordData.newPassword);
+        await this.authService.resetPassword(
+          setPasswordData.resetToken,
+          setPasswordData.newPassword
+        );
       }
 
       return {
-        message: 'Password reset successfully. You can now login with your new password.'
+        message: 'Password reset successfully. You can now login with your new password.',
       };
     } catch (error) {
-      throw new Error(`Password reset failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Password reset failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 }

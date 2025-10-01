@@ -3,6 +3,8 @@ import { SetPasswordUseCase } from '../../../application/use-cases/auth/forgot-p
 import { VerifyOTPUseCase } from '../../../application/use-cases/auth/forgot-password/verify-otp.usecase';
 import { LoginUseCase } from '../../../application/use-cases/auth/login.usecase';
 import { RegisterUseCase } from '../../../application/use-cases/auth/register.usecase';
+import { UpdateProfileUseCase } from '../../../application/use-cases/user/update-profile.usecase';
+import { ChangePasswordUseCase } from '../../../application/use-cases/user/change-password.usecase';
 import { AuthService } from '../../../application/services/auth.service';
 import { Request, Response } from 'express';
 import { errorMiddleware } from '../../middlewares/error.middleware';
@@ -18,6 +20,8 @@ export class AuthController {
   private forgotPasswordUseCase: ForgotPasswordUseCase;
   private verifyOTPUseCase: VerifyOTPUseCase;
   private setPasswordUseCase: SetPasswordUseCase;
+  private updateProfileUseCase: UpdateProfileUseCase;
+  private changePasswordUseCase: ChangePasswordUseCase;
   private authService: AuthService;
   private redisService: RedisService;
   private emailService: EmailService;
@@ -43,6 +47,8 @@ export class AuthController {
     );
     this.verifyOTPUseCase = new VerifyOTPUseCase(undefined, undefined, this.redisService);
     this.setPasswordUseCase = new SetPasswordUseCase(undefined, undefined, this.redisService);
+    this.updateProfileUseCase = new UpdateProfileUseCase();
+    this.changePasswordUseCase = new ChangePasswordUseCase();
   }
 
   register = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
@@ -227,4 +233,52 @@ export class AuthController {
       }
     }
   );
+
+  updateProfile = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
+    const userId = req.user?.id;
+    const { firstName, lastName, email } = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
+      });
+      return;
+    }
+
+    const result = await this.updateProfileUseCase.execute(userId, {
+      firstName,
+      lastName,
+      email,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: result,
+    });
+  });
+
+  changePassword = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
+    const userId = req.user?.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
+      });
+      return;
+    }
+
+    const result = await this.changePasswordUseCase.execute(userId, {
+      currentPassword,
+      newPassword,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+  });
 }

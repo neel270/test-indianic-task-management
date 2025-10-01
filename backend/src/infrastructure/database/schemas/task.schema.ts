@@ -4,7 +4,7 @@ export interface ITaskDocument extends Document {
   _id: mongoose.Types.ObjectId;
   title: string;
   description: string;
-  status: 'Pending' | 'Completed';
+  status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
   dueDate: Date;
   userId: mongoose.Types.ObjectId;
   assignedTo: mongoose.Types.ObjectId;
@@ -16,7 +16,9 @@ export interface ITaskDocument extends Document {
   updatedAt: Date;
   markAsCompleted(): Promise<void>;
   markAsPending(): Promise<void>;
-  updateDetails(updates: Partial<Pick<ITaskDocument, 'title' | 'description' | 'dueDate' | 'priority' | 'tags'>>): Promise<void>;
+  updateDetails(
+    updates: Partial<Pick<ITaskDocument, 'title' | 'description' | 'dueDate' | 'priority' | 'tags'>>
+  ): Promise<void>;
   addAttachment(attachmentUrl: string): Promise<void>;
   removeAttachment(attachmentUrl: string): Promise<void>;
   isOverdue(): boolean;
@@ -40,8 +42,8 @@ const taskSchema = new Schema<ITaskDocument>(
     status: {
       type: String,
       enum: {
-        values: ['Pending', 'Completed'],
-        message: 'Status must be either Pending or Completed',
+        values: ['Pending', 'In Progress', 'Completed', 'Cancelled'],
+        message: 'Status must be either Pending, In Progress, Completed, or Cancelled',
       },
       default: 'Pending',
     },
@@ -49,7 +51,7 @@ const taskSchema = new Schema<ITaskDocument>(
       type: Date,
       required: [true, 'Due date is required'],
       validate: {
-        validator: function (value: Date) {
+        validator(value: Date) {
           return value > new Date();
         },
         message: 'Due date must be in the future',
@@ -77,7 +79,7 @@ const taskSchema = new Schema<ITaskDocument>(
       type: [String],
       default: [],
       validate: {
-        validator: function (tags: string[]) {
+        validator(tags: string[]) {
           return tags.every(tag => tag.length <= 50);
         },
         message: 'Each tag cannot exceed 50 characters',
@@ -87,7 +89,7 @@ const taskSchema = new Schema<ITaskDocument>(
       type: [String],
       default: [],
       validate: {
-        validator: function (attachments: string[]) {
+        validator(attachments: string[]) {
           return attachments.every(url => url.length <= 500);
         },
         message: 'Each attachment URL cannot exceed 500 characters',
@@ -100,7 +102,7 @@ const taskSchema = new Schema<ITaskDocument>(
   {
     timestamps: true,
     toJSON: {
-      transform: function (_doc, ret: any) {
+      transform(_doc, ret: any) {
         ret.id = ret._id;
         delete ret._id;
         delete ret.__v;

@@ -1,14 +1,20 @@
 // Rate limiting middleware
 export {
   authRateLimit,
-  createRateLimit, generalRateLimit,
-  strictRateLimit, type RateLimitConfig
+  createRateLimit,
+  generalRateLimit,
+  strictRateLimit,
+  type RateLimitConfig,
 } from './rate-limit.middleware';
 
 // Security middleware
 export {
-  detectNoSQLInjection, detectSQLInjection, securityHeaders, securityLogger, validateRequest,
-  validateRequestSize
+  detectNoSQLInjection,
+  detectSQLInjection,
+  securityHeaders,
+  securityLogger,
+  validateRequest,
+  validateRequestSize,
 } from './security.middleware';
 
 // Error middleware

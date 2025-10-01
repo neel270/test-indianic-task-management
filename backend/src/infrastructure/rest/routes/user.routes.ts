@@ -1,17 +1,27 @@
 import { Router } from 'express';
-import { UserController } from '../controllers/user.controller';
 import { authMiddleware } from '../../middlewares/auth.middleware';
-import { profileImageUpload } from '../../config/multer.config';
+import { UserController } from '../controllers/user.controller';
 
-export const createUserRoutes = (
-  userController: UserController
-): Router => {
+export const createUserRoutes = (): Router => {
   const router = Router();
 
-  router.post('/register', userController.createUser.bind(userController));
-  router.post('/login', userController.loginUser.bind(userController));
-  router.get('/profile', authMiddleware.authenticate, userController.getProfile.bind(userController));
-  router.post('/profile/upload-image', authMiddleware.authenticate, profileImageUpload.single('profileImage'), userController.uploadProfileImage.bind(userController));
+  // Initialize controller with dependencies
+  const userController = new UserController();
+
+  // Admin-only routes for user management (simplified)
+  router.get(
+    '/users',
+    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
+    authMiddleware.adminOnly,
+    userController.listUsers.bind(userController)
+  );
+
+  router.put(
+    '/users/:id/status',
+    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
+    authMiddleware.adminOnly,
+    userController.toggleUserStatus.bind(userController)
+  );
 
   return router;
 };

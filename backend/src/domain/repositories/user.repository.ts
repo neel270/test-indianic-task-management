@@ -1,5 +1,11 @@
-import { UserEntity } from '@/domain/entities/user.entity';
-import { Email } from '@/domain/value-objects/email.vo';
+import { UserEntity } from '../entities/user.entity';
+import { Email } from '../value-objects/email.vo';
+
+export interface UserFilters {
+  role?: 'admin' | 'user';
+  isActive?: boolean;
+  search?: string;
+}
 
 export interface IUserRepository {
   save(user: UserEntity): Promise<UserEntity>;

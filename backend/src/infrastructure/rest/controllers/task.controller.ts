@@ -7,12 +7,13 @@ import { UpdateTaskUseCase } from '../../../application/use-cases/task/update-ta
 import { Request, Response } from 'express';
 import { errorMiddleware } from '../../middlewares/error.middleware';
 import * as fs from 'fs';
+import * as path from 'path';
 import { CSVUtil } from '../../../infrastructure/utils/csv.util';
 import { EmailService } from '../../services/email.service';
 import { TaskSocket } from '../../sockets/task.socket';
 import { UserRepositoryImpl } from '../../repositories/user.repository.impl';
-import { ImageService } from '../../services/image.service';
-
+import { APP_CONSTANTS } from '../../../shared/constants/app.constants';
+import { env } from '../../config';
 export class TaskController {
   private createTaskUseCase: CreateTaskUseCase;
   private updateTaskUseCase: UpdateTaskUseCase;
@@ -21,10 +22,8 @@ export class TaskController {
   private getTaskByIdUseCase: GetTaskByIdUseCase;
   private getTaskStatsUseCase: GetTaskStatsUseCase;
   private emailService: EmailService;
-  private imageService: ImageService;
   private taskSocket: TaskSocket;
-  private userRepository: any;
-
+  private userRepository: UserRepositoryImpl;
   constructor(taskSocket?: TaskSocket) {
     this.createTaskUseCase = new CreateTaskUseCase();
     this.updateTaskUseCase = new UpdateTaskUseCase();
@@ -33,17 +32,17 @@ export class TaskController {
     this.getTaskByIdUseCase = new GetTaskByIdUseCase();
     this.getTaskStatsUseCase = new GetTaskStatsUseCase();
     this.emailService = new EmailService();
-    this.imageService = new ImageService();
     this.userRepository = new UserRepositoryImpl();
-    this.taskSocket = taskSocket || new TaskSocket({} as any);
+    this.taskSocket = taskSocket ?? new TaskSocket({} as any);
   }
 
-  createTask = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
-    const { title, description, dueDate, status, priority, tags,assignedTo } = req.body;
+  createTask = errorMiddleware.catchAsync(async (req: Request, res: Response) => {
+    const { title, description, dueDate, status, priority, tags, assignedTo } = req.body;
     const userId = req.user?.id;
+    const files = req.files as Express.Multer.File[];
 
     if (!userId) {
-      res.status(401).json({
+      res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         message: 'User not authenticated',
       });
@@ -59,9 +58,9 @@ export class TaskController {
         status,
         priority,
         tags,
-
       },
-      userId
+      userId,
+      files
     );
 
     // Send email notification for task creation
@@ -83,11 +82,14 @@ export class TaskController {
         timestamp: new Date(),
       });
     } catch (error) {
-      console.warn('WebSocket notification failed (SocketIO may not be available):', error instanceof Error ? error.message : error);
+      console.warn(
+        'WebSocket notification failed (SocketIO may not be available):',
+        error instanceof Error ? error.message : error
+      );
       // Don't fail the request if WebSocket fails - this is expected when SocketIO is not configured
     }
 
-    res.status(201).json({
+    res.status(APP_CONSTANTS.HTTP_STATUS.CREATED).json({
       success: true,
       message: 'Task created successfully',
       data: result,
@@ -96,11 +98,11 @@ export class TaskController {
 
   getTasks = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
     const userId = req.user?.id;
-    const userRole = req.user?.role || 'user';
+    const userRole = req.user?.role ?? 'user';
     const { page, limit, status, startDate, endDate, sortBy, sortOrder } = req.query;
 
     if (!userId) {
-      res.status(401).json({
+      res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         message: 'User not authenticated',
       });
@@ -119,7 +121,7 @@ export class TaskController {
 
     const result = await this.listTasksUseCase.execute(userId, userRole, filters);
 
-    res.status(200).json({
+    res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
       success: true,
       message: 'Tasks retrieved successfully',
       data: result,
@@ -131,7 +133,7 @@ export class TaskController {
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({
+      res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         message: 'User not authenticated',
       });
@@ -143,7 +145,7 @@ export class TaskController {
       userId,
     });
 
-    res.status(200).json({
+    res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
       success: true,
       message: 'Task retrieved successfully',
       data: result,
@@ -152,11 +154,12 @@ export class TaskController {
 
   updateTask = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const { title, description, status, dueDate, priority, tags } = req.body;
+    const { title, description, status, dueDate, priority, tags, attachments } = req.body;
     const userId = req.user?.id;
+    const files = req.files as Express.Multer.File[];
 
     if (!userId) {
-      res.status(401).json({
+      res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         message: 'User not authenticated',
       });
@@ -164,7 +167,7 @@ export class TaskController {
     }
 
     if (!id) {
-      res.status(400).json({
+      res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         message: 'Task ID is required',
       });
@@ -180,11 +183,13 @@ export class TaskController {
         dueDate,
         priority,
         tags,
+        attachments,
       },
-      userId
+      userId,
+      files
     );
 
-    res.status(200).json({
+    res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
       success: true,
       message: 'Task updated successfully',
       data: result,
@@ -196,7 +201,7 @@ export class TaskController {
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({
+      res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         message: 'User not authenticated',
       });
@@ -204,7 +209,7 @@ export class TaskController {
     }
 
     if (!id) {
-      res.status(400).json({
+      res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         message: 'Task ID is required',
       });
@@ -213,7 +218,7 @@ export class TaskController {
 
     const result = await this.deleteTaskUseCase.execute(id, userId);
 
-    res.status(200).json({
+    res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
       success: true,
       message: result.message,
     });
@@ -225,7 +230,7 @@ export class TaskController {
       const userId = req.user?.id;
 
       if (!userId) {
-        res.status(401).json({
+        res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
           success: false,
           message: 'User not authenticated',
         });
@@ -233,7 +238,7 @@ export class TaskController {
       }
 
       if (!id) {
-        res.status(400).json({
+        res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           message: 'Task ID is required',
         });
@@ -245,7 +250,8 @@ export class TaskController {
         {
           status: 'Completed',
         },
-        userId
+        userId,
+        []
       );
 
       // Send email notification for task completion
@@ -269,11 +275,14 @@ export class TaskController {
           timestamp: new Date(),
         });
       } catch (error) {
-        console.warn('WebSocket notification failed (SocketIO may not be available):', error instanceof Error ? error.message : error);
+        console.warn(
+          'WebSocket notification failed (SocketIO may not be available):',
+          error instanceof Error ? error.message : error
+        );
         // Don't fail the request if WebSocket fails - this is expected when SocketIO is not configured
       }
 
-      res.status(200).json({
+      res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
         success: true,
         message: 'Task marked as completed',
         data: result,
@@ -287,7 +296,7 @@ export class TaskController {
       const userId = req.user?.id;
 
       if (!userId) {
-        res.status(401).json({
+        res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
           success: false,
           message: 'User not authenticated',
         });
@@ -295,7 +304,7 @@ export class TaskController {
       }
 
       if (!id) {
-        res.status(400).json({
+        res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           message: 'Task ID is required',
         });
@@ -307,10 +316,11 @@ export class TaskController {
         {
           status: 'Pending',
         },
-        userId
+        userId,
+        []
       );
 
-      res.status(200).json({
+      res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
         success: true,
         message: 'Task marked as pending',
         data: result,
@@ -320,10 +330,10 @@ export class TaskController {
 
   getTaskStats = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
     const userId = req.user?.id;
-    const userRole = req.user?.role || 'user';
+    const userRole = req.user?.role ?? 'user';
 
     if (!userId) {
-      res.status(401).json({
+      res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
         message: 'User not authenticated',
       });
@@ -335,139 +345,76 @@ export class TaskController {
       userRole,
     });
 
-    res.status(200).json({
+    res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
       success: true,
       message: 'Task statistics retrieved successfully',
       data: result,
     });
   });
 
-  uploadTaskFile = errorMiddleware.catchAsync(
+  serveAttachment = errorMiddleware.catchAsync(
     async (req: Request, res: Response): Promise<void> => {
-      const { id } = req.params;
-      const userId = req.user?.id;
-      const file = req.file;
+      const { userId, taskId, filename } = req.params;
+      const requestingUserId = req.user?.id;
 
-      if (!userId) {
-        res.status(401).json({
+      if (!requestingUserId) {
+        res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
           success: false,
           message: 'User not authenticated',
         });
         return;
       }
 
-      if (!id) {
-        res.status(400).json({
+      // Basic security check - ensure user can only access their own files
+      if (requestingUserId !== userId) {
+        res.status(APP_CONSTANTS.HTTP_STATUS.FORBIDDEN).json({
           success: false,
-          message: 'Task ID is required',
+          message: 'Access denied',
         });
         return;
       }
 
-      if (!file) {
-        res.status(400).json({
+      const uploadDir = env.uploadDir;
+      const filePath = path.join(uploadDir, userId, 'tasks', taskId, filename);
+
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        res.status(APP_CONSTANTS.HTTP_STATUS.NOT_FOUND).json({
           success: false,
-          message: 'No file provided',
+          message: 'File not found',
         });
         return;
       }
 
-      try {
-        // Process image files if needed (resize large images)
-        let finalFilePath = file.path;
-        if (file.mimetype.startsWith('image/')) {
-          finalFilePath = await this.imageService.resizeTaskImage(file.path);
+      // Set appropriate headers based on file extension
+      const ext = path.extname(filename).toLowerCase();
+      const mimeTypes: { [key: string]: string } = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.webp': 'image/webp',
+        '.gif': 'image/gif',
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.txt': 'text/plain',
+        '.rtf': 'application/rtf',
+      };
+
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+
+      // Send file
+      res.sendFile(filePath, err => {
+        if (err) {
+          console.error('Error serving file:', err);
+          res.status(APP_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: 'Error serving file',
+          });
         }
-
-        // Generate file URL for serving
-        const fileUrl = `/uploads/tasks/${userId}/${id}/${file.filename}`;
-
-        // Here you would typically save file info to database
-        // For now, return success with file info
-        const fileData = {
-          fileId: Date.now().toString(),
-          filename: file.filename,
-          originalName: file.originalname,
-          size: file.size,
-          mimetype: file.mimetype,
-          path: finalFilePath,
-          url: fileUrl,
-          taskId: id,
-          uploadedBy: userId,
-          uploadedAt: new Date(),
-        };
-
-        res.status(201).json({
-          success: true,
-          message: 'File uploaded successfully',
-          data: fileData,
-        });
-      } catch (error) {
-        console.error('Error processing uploaded file:', error);
-        res.status(500).json({
-          success: false,
-          message: 'Failed to process uploaded file',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-    }
-  );
-
-  getTaskFiles = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
-    const { id } = req.params;
-    const userId = req.user?.id;
-
-    if (!userId) {
-      res.status(401).json({
-        success: false,
-        message: 'User not authenticated',
-      });
-      return;
-    }
-
-    if (!id) {
-      res.status(400).json({
-        success: false,
-        message: 'Task ID is required',
-      });
-      return;
-    }
-
-    // Here you would typically fetch files from database
-    // For now, return empty array
-    res.status(200).json({
-      success: true,
-      message: 'Task files retrieved successfully',
-      data: [],
-    });
-  });
-
-  deleteTaskFile = errorMiddleware.catchAsync(
-    async (req: Request, res: Response): Promise<void> => {
-      const { id, fileId } = req.params;
-      const userId = req.user?.id;
-
-      if (!userId) {
-        res.status(401).json({
-          success: false,
-          message: 'User not authenticated',
-        });
-        return;
-      }
-
-      if (!id || !fileId) {
-        res.status(400).json({
-          success: false,
-          message: 'Task ID and File ID are required',
-        });
-        return;
-      }
-
-      // Here you would typically delete file from database and disk
-      // For now, return success
-      res.status(200).json({
-        success: true,
-        message: 'File deleted successfully',
       });
     }
   );
@@ -475,11 +422,11 @@ export class TaskController {
   exportTasksToCSV = errorMiddleware.catchAsync(
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.user?.id;
-      const userRole = req.user?.role || 'user';
+      const userRole = req.user?.role ?? 'user';
       const { status, startDate, endDate } = req.query;
 
       if (!userId) {
-        res.status(401).json({
+        res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
           success: false,
           message: 'User not authenticated',
         });
@@ -493,13 +440,13 @@ export class TaskController {
           startDate: startDate as string | undefined,
           endDate: endDate as string | undefined,
           page: 1,
-          limit: 10000, // Large limit to get all tasks for export
+          limit: APP_CONSTANTS.CSV_EXPORT.MAX_LIMIT, // Large limit to get all tasks for export
         };
 
         const result = await this.listTasksUseCase.execute(userId, userRole, filters);
 
         if (!result.tasks || result.tasks.length === 0) {
-          res.status(404).json({
+          res.status(APP_CONSTANTS.HTTP_STATUS.NOT_FOUND).json({
             success: false,
             message: 'No tasks found to export',
           });
@@ -530,11 +477,11 @@ export class TaskController {
               description: task.description,
               status: task.status,
               priority: task.priority || 'Medium',
-              dueDate: task.dueDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
-              createdAt: task.createdAt.toISOString(),
+              dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : '', // Format as YYYY-MM-DD
+              createdAt: task.createdAt ? task.createdAt.toISOString() : '',
               completedAt: task.completedAt ? task.completedAt.toISOString() : '',
-              userName: userName,
-              userEmail: userEmail,
+              userName,
+              userEmail,
               tags: task.tags || [],
               attachments: task.attachments || [],
             };
@@ -543,10 +490,13 @@ export class TaskController {
 
         // Generate filename with timestamp
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const filename = `tasks_export_${timestamp}.csv`;
+        const filename = `${APP_CONSTANTS.CSV_EXPORT.DEFAULT_FILENAME_PREFIX}_${timestamp}.csv`;
 
         // Export to CSV using CSVUtil
-        const filePath = await CSVUtil.exportTasksToCSV(csvData, `/tmp/${filename}`);
+        const filePath = await CSVUtil.exportTasksToCSV(
+          csvData,
+          `${APP_CONSTANTS.CSV_EXPORT.TEMP_DIR}/${filename}`
+        );
 
         // Read the generated CSV file
         const csvContent = fs.readFileSync(filePath, 'utf8');
@@ -559,13 +509,13 @@ export class TaskController {
         res.setHeader('Expires', '0');
 
         // Send CSV content
-        res.status(200).send(csvContent);
+        res.status(APP_CONSTANTS.HTTP_STATUS.OK).send(csvContent);
 
         // Clean up temporary file
         fs.unlinkSync(filePath);
       } catch (error) {
         console.error('CSV export error:', error);
-        res.status(500).json({
+        res.status(APP_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
           success: false,
           message: 'Failed to export tasks to CSV',
           error: error instanceof Error ? error.message : 'Unknown error',

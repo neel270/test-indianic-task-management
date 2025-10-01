@@ -1,6 +1,7 @@
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
+import { env } from '../config';
 
 export interface ImageResizeOptions {
   width: number;
@@ -13,7 +14,7 @@ export class ImageService {
   private uploadDir: string;
 
   constructor() {
-    this.uploadDir = process.env.UPLOAD_DIR || 'uploads/';
+    this.uploadDir = env.uploadDir; // Ensure this is set in your environment configuration
   }
 
   /**
@@ -58,21 +59,30 @@ export class ImageService {
       return outputPath;
     } catch (error) {
       console.error('Error resizing profile image:', error);
-      throw new Error(`Failed to resize profile image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to resize profile image: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
   /**
    * Resize task attachment image if needed
    */
-  async resizeTaskImage(filePath: string, maxWidth: number = 1200, maxHeight: number = 800): Promise<string> {
+  async resizeTaskImage(
+    filePath: string,
+    maxWidth: number = 1200,
+    maxHeight: number = 800
+  ): Promise<string> {
     try {
       const imageInfo = await sharp(filePath).metadata();
 
       // Only resize if image is larger than max dimensions
-      if (imageInfo.width && imageInfo.height &&
-          imageInfo.width > maxWidth && imageInfo.height > maxHeight) {
-
+      if (
+        imageInfo.width &&
+        imageInfo.height &&
+        imageInfo.width > maxWidth &&
+        imageInfo.height > maxHeight
+      ) {
         const outputPath = `${filePath}_resized_${Date.now()}.jpg`;
 
         await sharp(filePath)
@@ -110,7 +120,9 @@ export class ImageService {
       return await sharp(filePath).metadata();
     } catch (error) {
       console.error('Error getting image metadata:', error);
-      throw new Error(`Failed to get image metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to get image metadata: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -129,13 +141,13 @@ export class ImageService {
   /**
    * Delete image file
    */
-  deleteImage(filePath: string): Promise<void> {
+  async deleteImage(filePath: string): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!filePath || !fs.existsSync(filePath)) {
         return resolve();
       }
 
-      fs.unlink(filePath, (error) => {
+      fs.unlink(filePath, error => {
         if (error) {
           console.error('Error deleting image:', error);
           reject(error);
@@ -167,7 +179,9 @@ export class ImageService {
       return outputPath;
     } catch (error) {
       console.error('Error generating thumbnail:', error);
-      throw new Error(`Failed to generate thumbnail: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to generate thumbnail: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 }

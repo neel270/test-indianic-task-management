@@ -4,29 +4,33 @@ import {
   ArrowLeft,
   CheckCircle2,
   CircleDot,
+  Download,
   Edit,
   ExternalLink,
   Trash2,
+  Clock,
 } from 'lucide-react';
-import React from 'react';
-import { Badge } from '../../../components/ui/badge';
-import { Button } from '../../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
-import { useToast } from '../../../hooks/use-toast';
+import React, { useMemo } from 'react';
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '../../../components/ui';
 import { useTask, useDeleteTask, useUpdateTaskStatus } from '../../../hooks/useTaskApi';
 import { Task } from '../../../types/task';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
+import { getFileTypeInfo } from '@/lib/fileUtils';
 
-interface TaskDetailProps {
-  onEdit?: (task: Task) => void;
-  onBack?: () => void;
-}
-
-const TaskDetail: React.FC<TaskDetailProps> = ({ onEdit, onBack }) => {
-  const { toast } = useToast();
+const TaskDetail: React.FC = () => {
   const { id: taskId } = useParams();
+  const navigate = useNavigate();
+  const onBack = () => {
+    navigate(-1);
+  };
+  const onEdit = (task: Task) => {
+    navigate(`/tasks/${task.id}/edit/`);
+  };
   // API hooks
-  const { data: task, isLoading } = useTask(taskId || '');
+  const { data, isLoading } = useTask(taskId || '');
+  const task = useMemo(() => data, [data]);
+  console.log('TaskDetail - fetched task:', task);
   const deleteTaskMutation = useDeleteTask();
   const updateStatusMutation = useUpdateTaskStatus();
 
@@ -40,7 +44,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({ onEdit, onBack }) => {
     if (task) {
       const newStatus = task.status === 'Completed' ? 'Pending' : 'Completed';
       updateStatusMutation.mutate(
-        { id: task.id, status: newStatus.toLowerCase() },
+        { id: task.id, status: newStatus },
         {
           onSuccess: () => {
             toast({
@@ -56,11 +60,15 @@ const TaskDetail: React.FC<TaskDetailProps> = ({ onEdit, onBack }) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'Completed':
-        return <CheckCircle2 className='h-4 w-4' />;
+        return <CheckCircle2 className='h-3 w-3 mr-1' />;
       case 'Pending':
-        return <CircleDot className='h-4 w-4' />;
+        return <CircleDot className='h-3 w-3 mr-1' />;
+      case 'In Progress':
+        return <Clock className='h-3 w-3 mr-1' />;
+      case 'Cancelled':
+        return React.createElement(getFileTypeInfo('document').icon, { className: 'h-3 w-3 mr-1' });
       default:
-        return <CircleDot className='h-4 w-4' />;
+        return <CircleDot className='h-3 w-3 mr-1' />;
     }
   };
 
@@ -70,11 +78,14 @@ const TaskDetail: React.FC<TaskDetailProps> = ({ onEdit, onBack }) => {
         return 'default';
       case 'Pending':
         return 'outline';
+      case 'In Progress':
+        return 'secondary';
+      case 'Cancelled':
+        return 'destructive';
       default:
         return 'outline';
     }
   };
-
   const isOverdue = (dueDate?: string) => {
     if (!dueDate || !task) {
       return false;
@@ -134,7 +145,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({ onEdit, onBack }) => {
           <div>
             <h1 className='text-2xl font-bold text-gray-900'>{task.title}</h1>
             <p className='text-gray-600'>
-              Created {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
+              Created {formatDistanceToNow(new Date(task?.createdAt), { addSuffix: true })}
             </p>
           </div>
         </div>
@@ -174,7 +185,127 @@ const TaskDetail: React.FC<TaskDetailProps> = ({ onEdit, onBack }) => {
             </Card>
           )}
 
-          {/* Attachments not available in current API */}
+          {/* Tags */}
+          {task.tags && task.tags.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Tags</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className='flex flex-wrap gap-2'>
+                  {task.tags.map(
+                    (
+                      tag:
+                        | string
+                        | number
+                        | boolean
+                        | React.ReactElement<any, string | React.JSXElementConstructor<any>>
+                        | Iterable<React.ReactNode>
+                        | React.ReactPortal
+                        | null
+                        | undefined,
+                      index: React.Key | null | undefined
+                    ) => (
+                      <Badge key={index} variant='secondary'>
+                        {tag}
+                      </Badge>
+                    )
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Attachments */}
+          {task.attachments && task.attachments.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Attachments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className='space-y-3'>
+                  {task.attachments.map(
+                    (attachment: string | URL | undefined, index: React.Key | null | undefined) => {
+                      const attachmentUrl =
+                        typeof attachment === 'string' ? attachment : attachment?.toString() || '';
+                      const fileName = attachmentUrl.split('/').pop() || 'Unknown file';
+                      const fileTypeInfo = getFileTypeInfo(fileName);
+
+                      return (
+                        <div
+                          key={index}
+                          className='flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors'
+                        >
+                          <div className='flex items-center space-x-3'>
+                            {fileTypeInfo.type === 'image' ? (
+                              <div className='relative w-10 h-10 rounded border bg-gray-100 flex items-center justify-center overflow-hidden'>
+                                <img
+                                  src={attachmentUrl}
+                                  alt={fileName}
+                                  className='w-full h-full object-cover'
+                                  onError={e => {
+                                    // Fallback to icon if image fails to load
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent && !parent.querySelector('.fallback-icon')) {
+                                      const icon = document.createElement('div');
+                                      icon.className = 'fallback-icon';
+                                      icon.innerHTML =
+                                        '<svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
+                                      parent.appendChild(icon);
+                                    }
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div
+                                className={`flex items-center justify-center w-10 h-10 rounded border bg-gray-100`}
+                              >
+                                {fileTypeInfo.icon && (
+                                  <fileTypeInfo.icon className={`h-5 w-5 ${fileTypeInfo.color}`} />
+                                )}
+                              </div>
+                            )}
+                            <div className='flex-1 min-w-0'>
+                              <p className='text-sm font-medium text-gray-900 truncate'>
+                                {fileName}
+                              </p>
+                              <p className='text-xs text-gray-500 capitalize'>
+                                {fileTypeInfo.type === 'image'
+                                  ? 'Image preview'
+                                  : `${fileTypeInfo.type} file`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className='flex items-center space-x-2'>
+                            {fileTypeInfo.type === 'image' && (
+                              <Button
+                                variant='outline'
+                                size='sm'
+                                onClick={() => window.open(attachmentUrl, '_blank')}
+                              >
+                                <ExternalLink className='h-4 w-4 mr-2' />
+                                View
+                              </Button>
+                            )}
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              onClick={() => window.open(attachmentUrl, '_blank')}
+                            >
+                              <Download className='h-4 w-4 mr-2' />
+                              Download
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Activity not available in current API */}
         </div>
@@ -215,30 +346,6 @@ const TaskDetail: React.FC<TaskDetailProps> = ({ onEdit, onBack }) => {
                   {format(new Date(task.createdAt), 'MMM d, yyyy')}
                 </span>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className='space-y-2'>
-              {onEdit && (
-                <Button
-                  variant='outline'
-                  className='w-full justify-start'
-                  onClick={() => onEdit(task)}
-                >
-                  <Edit className='h-4 w-4 mr-2' />
-                  Edit Task
-                </Button>
-              )}
-
-              <Button variant='outline' className='w-full justify-start'>
-                <ExternalLink className='h-4 w-4 mr-2' />
-                Share Task
-              </Button>
             </CardContent>
           </Card>
         </div>

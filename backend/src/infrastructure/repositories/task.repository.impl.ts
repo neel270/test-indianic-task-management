@@ -24,19 +24,32 @@ export class TaskRepositoryImpl implements ITaskRepository {
     return model ? TaskModelMapper.toDomainFromMongoose(model.toObject()) : null;
   }
 
-  async findByUserId(userId: string, page: number = 1, limit: number = 10): Promise<{ tasks: TaskEntity[]; total: number }> {
+  async findByUserId(
+    userId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ tasks: TaskEntity[]; total: number }> {
     const skip = (page - 1) * limit;
     const [models, total] = await Promise.all([
-      this.repository.find({ userId }).skip(skip).limit(limit).sort({ createdAt: -1 }).populate('userId'),
-      this.repository.countDocuments({ userId })
+      this.repository
+        .find({ userId })
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .populate('userId'),
+      this.repository.countDocuments({ userId }),
     ]);
     return {
       tasks: models.map(model => TaskModelMapper.toDomainFromMongoose(model.toObject())),
-      total
+      total,
     };
   }
 
-  async findAll(page: number = 1, limit: number = 10, filters?: TaskFilters): Promise<{ tasks: TaskEntity[]; total: number }> {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    filters?: TaskFilters
+  ): Promise<{ tasks: TaskEntity[]; total: number }> {
     const skip = (page - 1) * limit;
     const query: any = {};
 
@@ -63,23 +76,30 @@ export class TaskRepositoryImpl implements ITaskRepository {
     }
 
     const [models, total] = await Promise.all([
-      this.repository.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }).populate('userId'),
-      this.repository.countDocuments(query)
+      this.repository
+        .find(query)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .populate('userId'),
+      this.repository.countDocuments(query),
     ]);
 
     return {
       tasks: models.map(model => TaskModelMapper.toDomainFromMongoose(model.toObject())),
-      total
+      total,
     };
   }
 
   async update(id: string, task: Partial<TaskEntity>): Promise<TaskEntity> {
     const modelData = TaskModelMapper.toPersistence(task as any);
-    const updatedModel = await this.repository.findByIdAndUpdate(
-      id,
-      { ...modelData, updatedAt: new Date() },
-      { new: true, runValidators: true }
-    ).populate('userId');
+    const updatedModel = await this.repository
+      .findByIdAndUpdate(
+        id,
+        { ...modelData, updatedAt: new Date() },
+        { new: true, runValidators: true }
+      )
+      .populate('userId');
     if (!updatedModel) {
       throw new Error('Task not found');
     }
@@ -96,7 +116,7 @@ export class TaskRepositoryImpl implements ITaskRepository {
     const models = await this.repository
       .find({
         status: 'Pending',
-        dueDate: { $lt: now }
+        dueDate: { $lt: now },
       })
       .populate('userId');
 
@@ -111,7 +131,7 @@ export class TaskRepositoryImpl implements ITaskRepository {
     const models = await this.repository
       .find({
         status: 'Pending',
-        dueDate: { $lte: thresholdDate, $gt: now }
+        dueDate: { $lte: thresholdDate, $gt: now },
       })
       .populate('userId');
 

@@ -15,10 +15,10 @@ export class RedisService {
 
   constructor() {
     this.client = createClient({
-      url: env.redisUrl || 'redis://localhost:6379'
+      url: env.redisUrl || 'redis://localhost:6379',
     });
 
-    this.client.on('error', (err) => {
+    this.client.on('error', err => {
       console.error('Redis Client Error:', err);
       this.isConnected = false;
     });
@@ -52,7 +52,11 @@ export class RedisService {
   }
 
   // Session management methods
-  async setSession(sessionId: string, sessionData: SessionData, ttl: number = 24 * 60 * 60): Promise<void> {
+  async setSession(
+    sessionId: string,
+    sessionData: SessionData,
+    ttl: number = 24 * 60 * 60
+  ): Promise<void> {
     try {
       const key = `session:${sessionId}`;
       await this.client.setEx(key, ttl, JSON.stringify(sessionData));

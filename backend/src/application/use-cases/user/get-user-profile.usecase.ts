@@ -9,7 +9,7 @@ export class GetUserProfileUseCase {
   private userRepository: IUserRepository;
 
   constructor(userRepository?: IUserRepository) {
-    this.userRepository = userRepository || new UserRepositoryImpl();
+    this.userRepository = userRepository ?? new UserRepositoryImpl();
   }
 
   async execute(data: GetUserProfileDto): Promise<{
@@ -19,8 +19,8 @@ export class GetUserProfileUseCase {
     lastName: string;
     role: string;
     profileImage?: string;
-    createdAt: string;
-    updatedAt: string;
+    createdAt: Date;
+    updatedAt: Date;
   }> {
     try {
       const user = await this.userRepository.findById(data.userId);
@@ -40,7 +40,9 @@ export class GetUserProfileUseCase {
         updatedAt: new Date(user.updatedAt),
       };
     } catch (error) {
-      throw new Error(`Failed to get user profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to get user profile: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 }

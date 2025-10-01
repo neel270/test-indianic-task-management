@@ -29,10 +29,10 @@ export class AuthMiddleware {
     try {
       const authHeader = req.headers.authorization;
 
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      if (!authHeader?.startsWith('Bearer ')) {
         res.status(401).json({
           success: false,
-          message: 'Access token is required'
+          message: 'Access token is required',
         });
         return;
       }
@@ -42,7 +42,7 @@ export class AuthMiddleware {
       if (!token) {
         res.status(401).json({
           success: false,
-          message: 'Access token is required'
+          message: 'Access token is required',
         });
         return;
       }
@@ -54,14 +54,14 @@ export class AuthMiddleware {
       req.user = {
         id: decoded.userId,
         email: decoded.email,
-        role: decoded.role
+        role: decoded.role,
       };
 
       next();
-    } catch (error) {
+    } catch {
       res.status(401).json({
         success: false,
-        message: 'Invalid or expired token'
+        message: 'Invalid or expired token',
       });
     }
   };
@@ -71,7 +71,7 @@ export class AuthMiddleware {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          message: 'Authentication required'
+          message: 'Authentication required',
         });
         return;
       }
@@ -79,7 +79,7 @@ export class AuthMiddleware {
       if (!allowedRoles.includes(req.user.role)) {
         res.status(403).json({
           success: false,
-          message: 'Access denied'
+          message: 'Access denied',
         });
         return;
       }

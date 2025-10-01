@@ -23,10 +23,7 @@ export class TaskReminderJob {
   private isRunning: boolean = false;
   private jobs: cron.ScheduledTask[] = [];
 
-  constructor(
-    taskSocket: TaskSocket,
-    config?: Partial<TaskReminderConfig>
-  ) {
+  constructor(taskSocket: TaskSocket, config?: Partial<TaskReminderConfig>) {
     this.taskService = new TaskService(
       new TaskRepositoryImpl() as ITaskRepository,
       new UserRepositoryImpl() as IUserRepository
@@ -40,7 +37,7 @@ export class TaskReminderJob {
       reminderTimes: [24, 12, 6, 1], // 24h, 12h, 6h, 1h before due
       emailEnabled: true,
       socketEnabled: true,
-      ...config
+      ...config,
     };
   }
 
@@ -56,21 +53,29 @@ export class TaskReminderJob {
     this.isRunning = true;
 
     // Schedule the main reminder check job
-    const mainJob = cron.schedule(this.config.checkInterval, () => {
-      this.checkAndSendReminders();
-    }, {
-      scheduled: false
-    });
+    const mainJob = cron.schedule(
+      this.config.checkInterval,
+      () => {
+        this.checkAndSendReminders();
+      },
+      {
+        scheduled: false,
+      }
+    );
 
     mainJob.start();
     this.jobs.push(mainJob);
 
     // Schedule immediate reminders for tasks due soon (every 15 minutes)
-    const immediateJob = cron.schedule('*/15 * * * *', () => {
-      this.checkImmediateReminders();
-    }, {
-      scheduled: false
-    });
+    const immediateJob = cron.schedule(
+      '*/15 * * * *',
+      () => {
+        this.checkImmediateReminders();
+      },
+      {
+        scheduled: false,
+      }
+    );
 
     immediateJob.start();
     this.jobs.push(immediateJob);
@@ -150,7 +155,7 @@ export class TaskReminderJob {
         dueDate: task.dueDate,
         hoursUntilDue: hoursBefore,
         priority: task.priority,
-        userId: task.userId
+        userId: task.userId,
       };
 
       // Send socket notification
@@ -160,7 +165,7 @@ export class TaskReminderJob {
           title: 'Task Due Soon',
           message: `Your task "${task.title}" is due in ${hoursBefore} hours`,
           data: reminderData,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
 
@@ -194,7 +199,7 @@ export class TaskReminderJob {
         dueDate: task.dueDate,
         priority: task.priority,
         userId: task.userId,
-        immediate: true
+        immediate: true,
       };
 
       // Send urgent socket notification
@@ -205,7 +210,7 @@ export class TaskReminderJob {
           message: `Your task "${task.title}" is due soon!`,
           data: reminderData,
           timestamp: new Date(),
-          urgent: true
+          urgent: true,
         });
       }
 
@@ -223,7 +228,6 @@ export class TaskReminderJob {
       console.error(`Error sending immediate reminder for task ${task.id}:`, error);
     }
   }
-
 
   /**
    * Check if reminder was already sent (placeholder implementation)
@@ -248,7 +252,7 @@ export class TaskReminderJob {
     return {
       isRunning: this.isRunning,
       jobsCount: this.jobs.length,
-      config: this.config
+      config: this.config,
     };
   }
 
@@ -300,7 +304,7 @@ export class TaskReminderJob {
           dueDate: task.dueDate,
           priority: task.priority,
           userId: task.userId,
-          overdue: true
+          overdue: true,
         };
 
         // Send socket notification
@@ -311,7 +315,7 @@ export class TaskReminderJob {
             message: `Your task "${task.title}" is now overdue!`,
             data: reminderData,
             timestamp: new Date(),
-            urgent: true
+            urgent: true,
           });
         }
 
@@ -330,5 +334,4 @@ export class TaskReminderJob {
       console.error('Error notifying overdue tasks:', error);
     }
   }
-
 }

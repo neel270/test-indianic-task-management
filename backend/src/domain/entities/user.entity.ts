@@ -38,7 +38,9 @@ export class UserEntity {
     );
   }
 
-  updateProfile(updates: Partial<Pick<User, 'firstName' | 'lastName' | 'email' | 'profileImage'>>): UserEntity {
+  updateProfile(
+    updates: Partial<Pick<User, 'firstName' | 'lastName' | 'email' | 'profileImage'>>
+  ): UserEntity {
     return new UserEntity(
       this.id,
       updates.firstName ?? this.firstName,
@@ -96,5 +98,33 @@ export class UserEntity {
       this.createdAt,
       new Date()
     );
+  }
+
+  updateDetails(updates: {
+    name?: string;
+    email?: string;
+    role?: 'admin' | 'user';
+    isActive?: boolean;
+  }): UserEntity {
+    const nameParts = updates.name ? updates.name.split(' ') : [this.firstName, this.lastName];
+    const firstName = nameParts[0] || this.firstName;
+    const lastName = nameParts.slice(1).join(' ') || this.lastName;
+
+    return new UserEntity(
+      this.id,
+      firstName,
+      lastName,
+      updates.email ?? this.email,
+      this.password,
+      updates.role ?? this.role,
+      updates.isActive ?? this.isActive,
+      this.profileImage,
+      this.createdAt,
+      new Date()
+    );
+  }
+
+  get name(): string {
+    return `${this.firstName} ${this.lastName}`.trim();
   }
 }

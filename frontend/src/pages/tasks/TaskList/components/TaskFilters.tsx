@@ -9,12 +9,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../../components/ui/select';
+import { TaskStatus } from '../../../../types/task';
 
 interface TaskFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  statusFilter: string;
-  onStatusFilterChange: (value: string) => void;
+  statusFilter: TaskStatus | 'all';
+  onStatusFilterChange: (value: TaskStatus | 'all') => void;
   viewMode: 'grid' | 'table';
   onViewModeChange: (mode: 'grid' | 'table') => void;
   onExport: () => void;
@@ -48,10 +49,10 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value='all'>All Tasks</SelectItem>
-          <SelectItem value='pending'>Pending</SelectItem>
-          <SelectItem value='in_progress'>In Progress</SelectItem>
-          <SelectItem value='completed'>Completed</SelectItem>
-          <SelectItem value='cancelled'>Cancelled</SelectItem>
+          <SelectItem value='Pending'>Pending</SelectItem>
+          <SelectItem value='In Progress'>In Progress</SelectItem>
+          <SelectItem value='Completed'>Completed</SelectItem>
+          <SelectItem value='Cancelled'>Cancelled</SelectItem>
         </SelectContent>
       </Select>
 

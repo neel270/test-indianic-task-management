@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Camera, User, Mail, Calendar, Shield, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { toastSuccess, toastError } from '@/hooks/use-toast';
+import { updateProfileSuccess } from '@/store/slices/authSlice';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -69,7 +70,7 @@ const Profile = () => {
       formData.append('profileImage', selectedFile);
 
       const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/auth/profile/upload-image', {
+      const response = await fetch('/api/auth/upload-profile-image', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -87,6 +88,13 @@ const Profile = () => {
       if (result.success) {
         toastSuccess('Profile image updated successfully!');
 
+        // Update Redux store with new profile image
+        if (user && result.data?.imageUrl) {
+          dispatch(updateProfileSuccess({
+            ...user,
+            profileImage: result.data.imageUrl
+          }));
+        }
 
         // Clear selection
         setSelectedFile(null);
@@ -139,14 +147,10 @@ const Profile = () => {
                       previewUrl ??
                       (user.profileImage ? `${user.profileImage}?t=${Date.now()}` : undefined)
                     }
-                    alt={user.name}
+                    alt={`${user.firstName} ${user.lastName}`}
                   />
                   <AvatarFallback className='text-2xl'>
-                    {user.name
-                      .split(' ')
-                      .map(n => n[0])
-                      .join('')
-                      .toUpperCase()}
+                    {user.firstName?.[0]}{user.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -213,7 +217,7 @@ const Profile = () => {
                   <Label className='text-sm font-medium text-gray-700'>Full Name</Label>
                   <div className='flex items-center gap-2 p-2 bg-gray-50 rounded-md'>
                     <User className='h-4 w-4 text-gray-500' />
-                    <span className='text-gray-900'>{user.name}</span>
+                    <span className='text-gray-900'>{user.firstName} {user.lastName}</span>
                   </div>
                 </div>
 
@@ -238,8 +242,8 @@ const Profile = () => {
                 <div className='space-y-2'>
                   <Label className='text-sm font-medium text-gray-700'>Account Status</Label>
                   <div className='flex items-center gap-2'>
-                    <Badge variant={user.isActive ? 'default' : 'destructive'}>
-                      {user.isActive ? 'Active' : 'Inactive'}
+                    <Badge variant='default'>
+                      Active
                     </Badge>
                   </div>
                 </div>
@@ -249,20 +253,11 @@ const Profile = () => {
                   <div className='flex items-center gap-2 p-2 bg-gray-50 rounded-md'>
                     <Calendar className='h-4 w-4 text-gray-500' />
                     <span className='text-gray-900'>
-                      {format(new Date(user.createdAt), 'MMMM d, yyyy')}
+                      {user.createdAt ? format(new Date(user.createdAt), 'MMMM d, yyyy') : 'N/A'}
                     </span>
                   </div>
                 </div>
 
-                <div className='space-y-2'>
-                  <Label className='text-sm font-medium text-gray-700'>Last Updated</Label>
-                  <div className='flex items-center gap-2 p-2 bg-gray-50 rounded-md'>
-                    <Calendar className='h-4 w-4 text-gray-500' />
-                    <span className='text-gray-900'>
-                      {format(new Date(user.updatedAt), 'MMMM d, yyyy')}
-                    </span>
-                  </div>
-                </div>
               </div>
 
               <div className='pt-4 border-t'>

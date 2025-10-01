@@ -103,7 +103,7 @@ apiClient.interceptors.response.use(
           console.error('Token refresh failed:', refreshError);
           // Refresh failed, clear tokens and redirect to auth
           processQueue(refreshError);
-         // window.location.href = '/login';
+         window.location.href = '/login';
           return Promise.reject(refreshError);
         } finally {
           _isRefreshing = false;
@@ -112,7 +112,7 @@ apiClient.interceptors.response.use(
         // No refresh token, redirect to auth
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        //window.location.href = '/login';
+        window.location.href = '/login';
       }
     }
 

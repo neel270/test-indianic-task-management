@@ -16,12 +16,14 @@ export class ForgotPasswordUseCase {
     redisService?: RedisService,
     emailService?: EmailService
   ) {
-    const userRepo = userRepository || new UserRepositoryImpl();
-    const taskRepo = taskRepository || new TaskRepositoryImpl();
+    const userRepo = userRepository ?? new UserRepositoryImpl();
+    const taskRepo = taskRepository ?? new TaskRepositoryImpl();
     this.authService = new AuthService(userRepo, taskRepo, redisService, emailService);
   }
 
-  async execute(forgotPasswordData: ForgotPasswordDto): Promise<{ message: string; otpExpiresAt: Date }> {
+  async execute(
+    forgotPasswordData: ForgotPasswordDto
+  ): Promise<{ message: string; otpExpiresAt: Date }> {
     try {
       const otpData = await this.authService.generatePasswordResetOTP(forgotPasswordData.email);
 
@@ -30,10 +32,12 @@ export class ForgotPasswordUseCase {
 
       return {
         message: 'OTP sent to your email address',
-        otpExpiresAt: otpData.expiresAt
+        otpExpiresAt: otpData.expiresAt,
       };
     } catch (error) {
-      throw new Error(`Forgot password failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Forgot password failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 }

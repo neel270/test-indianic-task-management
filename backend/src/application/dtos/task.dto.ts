@@ -4,9 +4,10 @@ export interface CreateTaskDto {
   description: string;
   dueDate: string; // ISO date string for validation
   assignedTo: string;
-  status?: 'Pending' | 'Completed';
+  status?: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
   priority?: 'Low' | 'Medium' | 'High';
   tags?: string[];
+  attachments?: string[];
 }
 
 export interface UpdateTaskDto {
@@ -17,6 +18,7 @@ export interface UpdateTaskDto {
   dueDate?: string; // ISO date string for validation
   priority?: 'Low' | 'Medium' | 'High';
   tags?: string[];
+  attachments?: string[];
 }
 
 export interface TaskFiltersDto {
@@ -34,7 +36,7 @@ export interface TaskIdDto {
 }
 
 export interface TaskStatusDto {
-   status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
+  status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
 }
 
 export interface UploadTaskFileDto {

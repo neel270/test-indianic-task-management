@@ -214,7 +214,7 @@ export class CSVUtil {
   /**
    * Delete CSV file
    */
-  static deleteCSVFile(filePath: string): Promise<void> {
+  static async deleteCSVFile(filePath: string): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!fs.existsSync(filePath)) {
         return resolve();

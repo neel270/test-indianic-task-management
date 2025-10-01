@@ -101,7 +101,7 @@ export const profileImageValidationSchema = Yup.object({
 });
 
 export const changePasswordValidationSchema = Yup.object({
-  oldPassword: Yup.string()
+  currentPassword: Yup.string()
     .min(6, 'Password must be at least 6 characters')
     .required('Current password is required'),
   newPassword: Yup.string()
@@ -110,12 +110,34 @@ export const changePasswordValidationSchema = Yup.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
       'Password must contain at least one uppercase letter, one lowercase letter, and one number'
     )
-    .notOneOf([Yup.ref('oldPassword')], 'New password must be different from current password')
+    .notOneOf([Yup.ref('currentPassword')], 'New password must be different from current password')
     .required('New password is required'),
   confirmNewPassword: Yup.string()
     .oneOf([Yup.ref('newPassword')], 'Passwords must match')
     .required('Please confirm your new password'),
 });
+
+export const updateProfileValidationSchema = Yup.object({
+  firstName: Yup.string()
+    .min(2, 'First name must be at least 2 characters')
+    .max(50, 'First name must be less than 50 characters')
+    .matches(/^[a-zA-Z\s]+$/, 'First name can only contain letters and spaces')
+    .optional(),
+  lastName: Yup.string()
+    .min(2, 'Last name must be at least 2 characters')
+    .max(50, 'Last name must be less than 50 characters')
+    .matches(/^[a-zA-Z\s]+$/, 'Last name can only contain letters and spaces')
+    .optional(),
+  email: Yup.string()
+    .email('Please enter a valid email address')
+    .optional(),
+}).test(
+  'at-least-one-field',
+  'At least one field must be provided for update',
+  function (values) {
+    return !!(values.firstName || values.lastName || values.email);
+  }
+);
 
 // File upload validation
 export const taskFileValidationSchema = Yup.object({

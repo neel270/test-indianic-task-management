@@ -16,12 +16,9 @@ export class UploadProfileImageUseCase {
   private userRepository: IUserRepository;
   private imageService: ImageService;
 
-  constructor(
-    userRepository?: IUserRepository,
-    imageService?: ImageService
-  ) {
-    this.userRepository = userRepository || new UserRepositoryImpl();
-    this.imageService = imageService || new ImageService();
+  constructor(userRepository?: IUserRepository, imageService?: ImageService) {
+    this.userRepository = userRepository ?? new UserRepositoryImpl();
+    this.imageService = imageService ?? new ImageService();
   }
 
   async execute(data: UploadProfileImageDto): Promise<{
@@ -53,7 +50,9 @@ export class UploadProfileImageUseCase {
         mimetype: data.file.mimetype,
       };
     } catch (error) {
-      throw new Error(`Failed to upload profile image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to upload profile image: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 }

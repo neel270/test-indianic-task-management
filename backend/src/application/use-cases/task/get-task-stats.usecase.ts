@@ -16,6 +16,7 @@ export interface GetTaskStatsUseCaseInput {
 
 export class GetTaskStatsUseCase {
   private taskRepository: ITaskRepository;
+  private readonly maxTasksForStats: number = 10000; // Maximum tasks to fetch for statistics
 
   constructor() {
     this.taskRepository = new TaskRepositoryImpl();
@@ -30,7 +31,7 @@ export class GetTaskStatsUseCase {
 
     try {
       // Get all tasks for the user
-      const result = await this.taskRepository.findByUserId(userId, 1, 10000); // Get all tasks
+      const result = await this.taskRepository.findByUserId(userId, 1, this.maxTasksForStats); // Get all tasks
       const tasks = result.tasks;
 
       const totalTasks = tasks.length;
@@ -39,10 +40,8 @@ export class GetTaskStatsUseCase {
 
       // Calculate overdue tasks
       const now = new Date();
-      const overdueTasks = tasks.filter(task =>
-        task.dueDate &&
-        new Date(task.dueDate) < now &&
-        task.status !== 'Completed'
+      const overdueTasks = tasks.filter(
+        task => task.dueDate && new Date(task.dueDate) < now && task.status !== 'Completed'
       ).length;
 
       // Calculate completion rate
@@ -56,7 +55,9 @@ export class GetTaskStatsUseCase {
         completionRate: Math.round(completionRate * 100) / 100, // Round to 2 decimal places
       };
     } catch (error) {
-      throw new Error(`Failed to get task statistics: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to get task statistics: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 }

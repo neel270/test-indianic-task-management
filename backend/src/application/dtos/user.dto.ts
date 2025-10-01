@@ -50,3 +50,11 @@ export interface ResetPasswordWithEmailDto {
 export interface UploadProfileImageDto {
   profileImage: string; // This will be handled by multer
 }
+
+export interface UserFiltersDto {
+  role?: 'admin' | 'user';
+  isActive?: boolean;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
