@@ -5,7 +5,7 @@ import path from 'path';
 
 // Storage configuration for profile images
 export const profileImageStorage = multer.diskStorage({
-  destination: (req: any, file: any, cb: (error: Error | null, destination: string) => void) => {
+  destination: (req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
     const uploadDir = process.env.UPLOAD_DIR || 'uploads/';
     const userId = req.user?.id;
 
@@ -20,7 +20,7 @@ export const profileImageStorage = multer.diskStorage({
 
     cb(null, userProfileDir);
   },
-  filename: (req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
+  filename: (_req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
     // Generate unique filename with timestamp
     const uniqueSuffix = Date.now() + '-profile';
     const extension = path.extname(file.originalname);
@@ -30,7 +30,7 @@ export const profileImageStorage = multer.diskStorage({
 
 // Storage configuration for task files
 export const taskFileStorage = multer.diskStorage({
-  destination: (req: any, file: any, cb: (error: Error | null, destination: string) => void) => {
+  destination: (req: any, _file: any, cb: (error: Error | null, destination: string) => void) => {
     const uploadDir = process.env.UPLOAD_DIR || 'uploads/';
     const userId = req.user?.id;
     const taskId = req.params.id;
@@ -50,7 +50,7 @@ export const taskFileStorage = multer.diskStorage({
 
     cb(null, taskFileDir);
   },
-  filename: (req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
+  filename: (_req: any, file: any, cb: (error: Error | null, filename: string) => void) => {
     // Generate unique filename with timestamp
     const uniqueSuffix = Date.now() + '-task';
     const extension = path.extname(file.originalname);
@@ -59,7 +59,7 @@ export const taskFileStorage = multer.diskStorage({
 });
 
 // File filter for images
-export const imageFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+export const imageFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   // Allow only image files
   const allowedTypes = [
     'image/jpeg',
@@ -76,7 +76,7 @@ export const imageFileFilter = (req: any, file: Express.Multer.File, cb: multer.
 };
 
 // File filter for documents
-export const documentFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+export const documentFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   // Allow common document and image types
   const allowedTypes = [
     'image/jpeg',

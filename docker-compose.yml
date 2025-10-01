@@ -33,7 +33,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - courier-service-network
+      - task-management-service-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -45,12 +45,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: courier-service-backend
+    container_name: task-management-service-backend
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${BACKEND_PORT:-3001}
-      MONGODB_URI: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017/${MONGO_DATABASE:-courier_service}?authSource=admin
+      MONGODB_URI: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017/${MONGO_DATABASE:-task-management_service}?authSource=admin
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
@@ -66,7 +66,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - courier-service-network
+      - task-management-service-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
@@ -79,7 +79,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3001/api}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:5000/api/v1}
     container_name: task-management-service-frontend
     restart: unless-stopped
     environment:

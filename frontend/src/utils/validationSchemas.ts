@@ -2,9 +2,7 @@ import * as Yup from 'yup';
 
 // Auth validation schemas
 export const loginValidationSchema = Yup.object({
-  email: Yup.string()
-    .email('Please enter a valid email address')
-    .required('Email is required'),
+  email: Yup.string().email('Please enter a valid email address').required('Email is required'),
   password: Yup.string()
     .min(6, 'Password must be at least 6 characters')
     .required('Password is required'),
@@ -15,9 +13,7 @@ export const registerValidationSchema = Yup.object({
     .min(2, 'Name must be at least 2 characters')
     .max(50, 'Name must be less than 50 characters')
     .required('Full name is required'),
-  email: Yup.string()
-    .email('Please enter a valid email address')
-    .required('Email is required'),
+  email: Yup.string().email('Please enter a valid email address').required('Email is required'),
   password: Yup.string()
     .min(6, 'Password must be at least 6 characters')
     .matches(
@@ -31,9 +27,7 @@ export const registerValidationSchema = Yup.object({
 });
 
 export const forgotPasswordValidationSchema = Yup.object({
-  email: Yup.string()
-    .email('Please enter a valid email address')
-    .required('Email is required'),
+  email: Yup.string().email('Please enter a valid email address').required('Email is required'),
 });
 
 export const otpValidationSchema = Yup.object({
@@ -80,8 +74,7 @@ export const taskUpdateValidationSchema = Yup.object({
     .min(10, 'Description must be at least 10 characters')
     .max(1000, 'Description must be less than 1000 characters')
     .required('Task description is required'),
-  dueDate: Yup.date()
-    .required('Due date is required'),
+  dueDate: Yup.date().required('Due date is required'),
   status: Yup.string()
     .oneOf(['Pending', 'Completed'], 'Status must be either Pending or Completed')
     .required('Status is required'),
@@ -91,13 +84,17 @@ export const taskUpdateValidationSchema = Yup.object({
 export const profileImageValidationSchema = Yup.object({
   profileImage: Yup.mixed()
     .required('Please select an image')
-    .test('fileType', 'Only image files are allowed (JPG, JPEG, PNG, WebP)', (value) => {
-      if (!value) return false;
+    .test('fileType', 'Only image files are allowed (JPG, JPEG, PNG, WebP)', value => {
+      if (!value) {
+        return false;
+      }
       const file = value as File;
       return file && ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type);
     })
-    .test('fileSize', 'Image size must be less than 5MB', (value) => {
-      if (!value) return false;
+    .test('fileSize', 'Image size must be less than 5MB', value => {
+      if (!value) {
+        return false;
+      }
       const file = value as File;
       return file && file.size <= 5 * 1024 * 1024; // 5MB
     }),
@@ -124,8 +121,10 @@ export const changePasswordValidationSchema = Yup.object({
 export const taskFileValidationSchema = Yup.object({
   file: Yup.mixed()
     .required('Please select a file')
-    .test('fileType', 'Only PDF, DOCX, and image files are allowed', (value) => {
-      if (!value) return false;
+    .test('fileType', 'Only PDF, DOCX, and image files are allowed', value => {
+      if (!value) {
+        return false;
+      }
       const file = value as File;
       const allowedTypes = [
         'application/pdf',
@@ -133,12 +132,14 @@ export const taskFileValidationSchema = Yup.object({
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'image/jpeg',
         'image/jpg',
-        'image/png'
+        'image/png',
       ];
       return file && allowedTypes.includes(file.type);
     })
-    .test('fileSize', 'File size must be less than 10MB', (value) => {
-      if (!value) return false;
+    .test('fileSize', 'File size must be less than 10MB', value => {
+      if (!value) {
+        return false;
+      }
       const file = value as File;
       return file && file.size <= 10 * 1024 * 1024; // 10MB
     }),
@@ -152,20 +153,24 @@ export const taskFilterValidationSchema = Yup.object({
   endDate: Yup.date()
     .nullable()
     .when('startDate', (startDate, schema) => {
-      return startDate
-        ? schema.min(startDate, 'End date must be after start date')
-        : schema;
+      return startDate ? schema.min(startDate, 'End date must be after start date') : schema;
     }),
 });
 
 // Form field helpers
-export const getFieldError = (formik: any, fieldName: string): string | undefined => {
+export const getFieldError = (
+  formik: { touched: Record<string, boolean>; errors: Record<string, string> },
+  fieldName: string
+): string | undefined => {
   return formik.touched[fieldName] && formik.errors[fieldName]
     ? formik.errors[fieldName]
     : undefined;
 };
 
-export const isFieldInvalid = (formik: any, fieldName: string): boolean => {
+export const isFieldInvalid = (
+  formik: { touched: Record<string, boolean>; errors: Record<string, string> },
+  fieldName: string
+): boolean => {
   return !!(formik.touched[fieldName] && formik.errors[fieldName]);
 };
 

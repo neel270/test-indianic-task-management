@@ -1,15 +1,18 @@
-import { TaskEntity } from '@/domain/entities/task.entity';
-import { ITaskRepository, TaskFilters } from '@/domain/repositories/task.repository';
-import { IUserRepository } from '@/domain/repositories/user.repository';
+import { TaskEntity } from '../../domain/entities';
+import { ITaskRepository, TaskFilters } from '../../domain/repositories/task.repository';
+import { IUserRepository } from '../../domain/repositories/user.repository';
 
 export interface PaginatedTasksResult {
   tasks: TaskEntity[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+    totalItems: number;
+  };
 }
 
 export interface TaskStats {
@@ -31,6 +34,7 @@ export class TaskService {
     description: string,
     dueDate: Date,
     userId: string,
+    assignedTo: string,
     priority: 'Low' | 'Medium' | 'High' = 'Medium',
     tags: string[] = []
   ): Promise<TaskEntity> {
@@ -43,6 +47,21 @@ export class TaskService {
     if (!user.isActive) {
       throw new Error('User account is deactivated');
     }
+    console.log(
+      'Creating task with data:',
+      {
+        title,
+        description,
+        status: 'Pending',
+        dueDate,
+        userId,
+        assignedTo,
+        priority,
+        tags,
+      },
+      'for user:',
+      userId
+    );
 
     // Create task entity
     const task = TaskEntity.create({
@@ -51,8 +70,9 @@ export class TaskService {
       status: 'Pending',
       dueDate,
       userId,
+      assignedTo,
       priority,
-      tags
+      tags,
     });
 
     // Save task
@@ -96,7 +116,7 @@ export class TaskService {
       const userTasks = allTasks.filter(task => task.userId === userId);
       result = {
         tasks: userTasks.slice((page - 1) * limit, page * limit),
-        total: userTasks.length
+        total: userTasks.length,
       };
     } else {
       result = await this.taskRepository.findByUserId(userId, page, limit);
@@ -106,11 +126,15 @@ export class TaskService {
 
     return {
       ...result,
-      page,
-      limit,
-      totalPages,
-      hasNext: page < totalPages,
-      hasPrev: page > 1
+      pagination: {
+        total: result.total,
+        page,
+        limit,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+        totalItems: result.total,
+      },
     };
   }
 
@@ -130,11 +154,15 @@ export class TaskService {
 
     return {
       ...result,
-      page,
-      limit,
-      totalPages,
-      hasNext: page < totalPages,
-      hasPrev: page > 1
+      pagination: {
+        totalItems: result.total,
+        page,
+        limit,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+        total: result.total,
+      },
     };
   }
 
@@ -181,7 +209,7 @@ export class TaskService {
       description: updates.description,
       dueDate: updates.dueDate,
       priority: updates.priority,
-      tags: updates.tags
+      tags: updates.tags,
     });
 
     return await this.taskRepository.update(taskId, updatedTask);
@@ -204,7 +232,11 @@ export class TaskService {
     return await this.taskRepository.delete(taskId);
   }
 
-  async addTaskAttachment(taskId: string, attachmentUrl: string, userId?: string): Promise<TaskEntity> {
+  async addTaskAttachment(
+    taskId: string,
+    attachmentUrl: string,
+    userId?: string
+  ): Promise<TaskEntity> {
     const existingTask = await this.taskRepository.findById(taskId);
     if (!existingTask) {
       throw new Error('Task not found');
@@ -222,7 +254,11 @@ export class TaskService {
     return await this.taskRepository.update(taskId, updatedTask);
   }
 
-  async removeTaskAttachment(taskId: string, attachmentUrl: string, userId?: string): Promise<TaskEntity> {
+  async removeTaskAttachment(
+    taskId: string,
+    attachmentUrl: string,
+    userId?: string
+  ): Promise<TaskEntity> {
     const existingTask = await this.taskRepository.findById(taskId);
     if (!existingTask) {
       throw new Error('Task not found');
@@ -264,7 +300,7 @@ export class TaskService {
       completedTasks,
       pendingTasks,
       overdueTasks,
-      completionRate: Math.round(completionRate * 100) / 100
+      completionRate: Math.round(completionRate * 100) / 100,
     };
   }
 

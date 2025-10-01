@@ -1,6 +1,7 @@
 // User DTOs for validation schemas
 export interface CreateUserDto {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   role?: 'admin' | 'user';
@@ -13,7 +14,8 @@ export interface LoginUserDto {
 }
 
 export interface UpdateUserDto {
-  name?: string;
+  firstName: string;
+  lastName: string;
   email?: string;
   role?: 'admin' | 'user';
   isActive?: boolean;
@@ -35,6 +37,12 @@ export interface VerifyOtpDto {
 }
 
 export interface SetNewPasswordDto {
+  resetToken: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordWithEmailDto {
+  email: string;
   resetToken: string;
   newPassword: string;
 }

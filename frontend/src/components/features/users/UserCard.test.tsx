@@ -1,4 +1,3 @@
-
 // Simple test structure without external dependencies
 import { logger } from '../../../lib/logger';
 const mockUser = {
@@ -7,7 +6,7 @@ const mockUser = {
   email: 'john@example.com',
   role: 'admin',
   isActive: true,
-  createdAt: new Date('2023-01-01')
+  createdAt: new Date('2023-01-01'),
 };
 
 // Basic test runner
@@ -21,18 +20,26 @@ const it = (name: string, fn: () => void) => {
     fn();
     logger.info(`Test passed: ${name}`);
   } catch (error) {
-    logger.error(`Test failed: ${name}`, { error: error instanceof Error ? error.message : String(error) });
+    logger.error(`Test failed: ${name}`, {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 };
 
-const expect = (actual: any) => ({
-  toBeInTheDocument: () => {
-    if (!actual) throw new Error('Element not found in document');
-  },
-  toBe: (expected: any) => {
-    if (actual !== expected) throw new Error(`Expected ${expected}, got ${actual}`);
-  }
-});
+const expect = function <T>(actual: T) {
+  return {
+    toBeInTheDocument: (): void => {
+      if (!actual) {
+        throw new Error('Element not found in document');
+      }
+    },
+    toBe: (expected: T): void => {
+      if (actual !== expected) {
+        throw new Error(`Expected ${expected}, got ${actual}`);
+      }
+    },
+  };
+};
 
 describe('UserCard', () => {
   it('should render user information correctly', () => {

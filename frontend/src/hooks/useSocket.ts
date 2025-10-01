@@ -12,11 +12,25 @@ export type SocketEventData = {
   authentication_error: { message: string };
 
   // Task events
-  task_created: any;
-  task_updated: any;
-  task_deleted: any;
-  task_status_changed: any;
-  task_assigned: any;
+  task_created: {
+    id: string;
+    title: string;
+    description: string;
+    status: string;
+    dueDate: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  task_updated: {
+    id: string;
+    title?: string;
+    description?: string;
+    status?: string;
+    dueDate?: string;
+  };
+  task_deleted: { id: string };
+  task_status_changed: { id: string; status: string };
+  task_assigned: { taskId: string; userId: string; userEmail: string };
   task_assigned_success: { message: string };
 
   // Collaboration events
@@ -26,11 +40,18 @@ export type SocketEventData = {
   user_typing_stop: { userId: string; userEmail: string; taskId: string };
 
   // Comment events
-  task_comment_added: any;
+  task_comment_added: {
+    taskId: string;
+    commentId: string;
+    userId: string;
+    userEmail: string;
+    content: string;
+    createdAt: string;
+  };
 
   // Reminder events
-  task_reminder: any;
-  task_reminder_due: any;
+  task_reminder: { taskId: string; reminderTime: string; message: string };
+  task_reminder_due: { taskId: string; title: string; dueDate: string };
 
   // User status events
   user_online: { userId: string; userEmail: string };
@@ -43,10 +64,22 @@ export type SocketEventData = {
   left_task_room: { taskId: string };
 
   // Notification events
-  notification: any;
+  notification: {
+    id: string;
+    title: string;
+    message: string;
+    type: 'info' | 'success' | 'warning' | 'error';
+    createdAt: string;
+  };
 
   // System events
-  system_announcement: any;
+  system_announcement: {
+    id: string;
+    title: string;
+    message: string;
+    priority: 'low' | 'medium' | 'high';
+    createdAt: string;
+  };
 
   // Connection events (handled by Socket.IO internally)
   connect: never;
@@ -111,8 +144,8 @@ interface UseSocketReturn {
  */
 export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
   const {
-    url = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000',
-    options: socketOptions = {}
+    url = import.meta.env.VITE_SOCKET_URL ?? 'http://localhost:5000',
+    options: socketOptions = {},
   } = options;
 
   const [isConnected, setIsConnected] = useState<boolean>(false);
@@ -192,10 +225,7 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
     }
   }, []);
 
-  const emit = useCallback((
-    event: string,
-    data?: unknown
-  ) => {
+  const emit = useCallback((event: string, data?: unknown) => {
     if (socketRef.current?.connected) {
       socketRef.current.emit(event, data);
     } else {
@@ -203,17 +233,11 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
     }
   }, []);
 
-  const on = useCallback((
-    event: string,
-    callback: (data: unknown) => void
-  ) => {
+  const on = useCallback((event: string, callback: (data: unknown) => void) => {
     socketRef.current?.on(event, callback);
   }, []);
 
-  const off = useCallback((
-    event: string,
-    callback?: (data: unknown) => void
-  ) => {
+  const off = useCallback((event: string, callback?: (data: unknown) => void) => {
     if (callback) {
       socketRef.current?.off(event, callback);
     } else {

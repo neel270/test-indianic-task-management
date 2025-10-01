@@ -58,6 +58,18 @@ export class UserRepositoryImpl implements IUserRepository {
     return UserModelMapper.toDomainFromMongoose(updatedModel.toObject());
   }
 
+  async updateProfileImage(id: string, profileImage: string): Promise<UserEntity> {
+    const updatedModel = await this.repository.findByIdAndUpdate(
+      id,
+      { profileImage, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
+    if (!updatedModel) {
+      throw new Error('User not found');
+    }
+    return UserModelMapper.toDomainFromMongoose(updatedModel.toObject());
+  }
+
   async delete(id: string): Promise<boolean> {
     const result = await this.repository.findByIdAndDelete(id);
     return !!result;

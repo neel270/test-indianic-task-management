@@ -7,6 +7,7 @@ export interface ITaskDocument extends Document {
   status: 'Pending' | 'Completed';
   dueDate: Date;
   userId: mongoose.Types.ObjectId;
+  assignedTo: mongoose.Types.ObjectId;
   priority: 'Low' | 'Medium' | 'High';
   tags: string[];
   attachments: string[];
@@ -59,6 +60,11 @@ const taskSchema = new Schema<ITaskDocument>(
       ref: 'User',
       required: [true, 'User ID is required'],
     },
+    assignedTo: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'User ID is required'],
+    },
     priority: {
       type: String,
       enum: {
@@ -94,7 +100,7 @@ const taskSchema = new Schema<ITaskDocument>(
   {
     timestamps: true,
     toJSON: {
-      transform: function (doc, ret: any) {
+      transform: function (_doc, ret: any) {
         ret.id = ret._id;
         delete ret._id;
         delete ret.__v;

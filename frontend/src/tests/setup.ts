@@ -1,7 +1,7 @@
 // Basic test setup without external dependencies
 
 // Mock IntersectionObserver
-(global as any).IntersectionObserver = class IntersectionObserver {
+(global as typeof globalThis).IntersectionObserver = class IntersectionObserver {
   constructor() {}
   observe() {
     return null;
@@ -15,7 +15,7 @@
 };
 
 // Mock ResizeObserver
-(global as any).ResizeObserver = class ResizeObserver {
+(global as typeof globalThis).ResizeObserver = class ResizeObserver {
   constructor() {}
   observe() {
     return null;
@@ -31,7 +31,7 @@
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: ((query: string) => ({
+  value: (query: string) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -40,5 +40,5 @@ Object.defineProperty(window, 'matchMedia', {
     addEventListener: () => {},
     removeEventListener: () => {},
     dispatchEvent: () => {},
-  })),
+  }),
 });

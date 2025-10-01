@@ -5,7 +5,7 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
       gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: Error & { response?: { status?: number } }) => {
         if (error?.response?.status === 401 || error?.response?.status === 403) {
           return false; // Don't retry auth errors
         }
@@ -14,7 +14,7 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
     mutations: {
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: Error & { response?: { status?: number } }) => {
         if (error?.response?.status === 401 || error?.response?.status === 403) {
           return false; // Don't retry auth errors
         }

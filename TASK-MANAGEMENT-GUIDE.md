@@ -68,7 +68,7 @@ This document provides comprehensive documentation for the implemented task mana
 
 ### ✅ **8. API Documentation**
 - **Location**: `backend/server/config/swagger.ts`
-- **Access**: `http://localhost:3001/api-docs`
+- **Access**: `http://localhost:5000/api-docs`
 - **Coverage**: Auth endpoints, Task endpoints, comprehensive schemas
 
 ## 📊 **Additional Features Implemented**
@@ -145,8 +145,8 @@ npm run dev
 
 # 4. Access the application
 # Frontend: http://localhost:3000
-# Backend: http://localhost:3001
-# API Docs: http://localhost:3001/api-docs
+# Backend: http://localhost:5000
+# API Docs: http://localhost:5000/api-docs
 ```
 
 ## 📱 **Frontend Pages**

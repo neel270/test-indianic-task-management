@@ -8,7 +8,7 @@ export interface AppError extends Error {
 
 export class ErrorMiddleware {
   // Global error handler
-  handle = (error: AppError, req: Request, res: Response, next: NextFunction): void => {
+  handle = (error: AppError, req: Request, res: Response, _next: NextFunction): void => {
     let statusCode = error.statusCode || 500;
     let message = error.message || 'Internal Server Error';
     let isOperational = error.isOperational || false;
@@ -68,7 +68,7 @@ export class ErrorMiddleware {
   };
 
   // 404 handler
-  notFound = (req: Request, res: Response, next: NextFunction): void => {
+  notFound = (req: Request, _res: Response, next: NextFunction): void => {
     const error: AppError = new Error(`Not found - ${req.originalUrl}`);
     error.statusCode = 404;
     error.isOperational = true;

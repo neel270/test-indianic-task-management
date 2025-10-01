@@ -5,9 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Edit, Trash2, UserCheck, UserX } from 'lucide-react';
 import { useState } from 'react';
-import { useAppDispatch } from '@/store/hooks';
-import { toggleUserStatus, deleteUser } from '@/store/slices/userSlice';
-import { toast } from 'sonner';
+import { useDeleteUser, useToggleUserStatus } from '@/hooks/useUserApi';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,23 +24,17 @@ interface UserCardProps {
 
 export const UserCard = ({ user, onEdit }: UserCardProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const dispatch = useAppDispatch();
 
-  const handleToggleStatus = async () => {
-    try {
-      await dispatch(toggleUserStatus(user.id.toString())).unwrap();
-    } catch (error: unknown) {
-      toast.error('Failed to update user status');
-    }
+  const deleteUserMutation = useDeleteUser();
+  const toggleStatusMutation = useToggleUserStatus();
+
+  const handleToggleStatus = () => {
+    void toggleStatusMutation.mutateAsync(user.id.toString());
   };
 
-  const handleDelete = async () => {
-    try {
-      await dispatch(deleteUser(user.id.toString())).unwrap();
-      setShowDeleteDialog(false);
-    } catch (error: unknown) {
-      toast.error('Failed to delete user');
-    }
+  const handleDelete = () => {
+    void deleteUserMutation.mutateAsync(user.id.toString());
+    setShowDeleteDialog(false);
   };
 
   const getInitials = (name: string) => {
@@ -63,76 +55,64 @@ export const UserCard = ({ user, onEdit }: UserCardProps) => {
 
   return (
     <>
-      <Card className="hover:shadow-md transition-shadow">
-        <CardHeader className="pb-3">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                {getInitials(user.name)}
+      <Card className='hover:shadow-md transition-shadow'>
+        <CardHeader className='pb-3'>
+          <div className='flex items-center space-x-3'>
+            <Avatar className='h-10 w-10'>
+              <AvatarFallback className='bg-primary/10 text-primary font-medium'>
+                {getInitials(user.firstName + ' ' + user.lastName)}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm truncate">{user.name}</h3>
-              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            <div className='flex-1 min-w-0'>
+              <h3 className='font-semibold text-sm truncate'>{user.firstName + ' ' + user.lastName}</h3>
+              <p className='text-xs text-muted-foreground truncate'>{user.email}</p>
             </div>
-            <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-              {user.role}
-            </Badge>
+            <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>{user.role}</Badge>
           </div>
         </CardHeader>
-        <CardContent className="pt-0">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <CardContent className='pt-0'>
+          <div className='space-y-3'>
+            <div className='flex items-center justify-between text-xs text-muted-foreground'>
               <span>Status:</span>
               <Badge variant={user.isActive ? 'default' : 'destructive'}>
                 {user.isActive ? 'Active' : 'Inactive'}
               </Badge>
             </div>
 
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className='flex items-center justify-between text-xs text-muted-foreground'>
               <span>Joined:</span>
               <span>{formatDate(user.createdAt)}</span>
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <div className='flex gap-2 pt-2'>
               {onEdit && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onEdit(user)}
-                  className="flex-1"
-                >
-                  <Edit className="h-3 w-3 mr-1" />
+                <Button variant='outline' size='sm' onClick={() => onEdit(user)} className='flex-1'>
+                  <Edit className='h-3 w-3 mr-1' />
                   Edit
                 </Button>
               )}
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleToggleStatus}
-                className="flex-1"
-              >
+              <Button variant='outline' size='sm' onClick={handleToggleStatus} className='flex-1'>
                 {user.isActive ? (
                   <>
-                    <UserX className="h-3 w-3 mr-1" />
+                    <UserX className='h-3 w-3 mr-1' />
                     Deactivate
                   </>
                 ) : (
                   <>
-                    <UserCheck className="h-3 w-3 mr-1" />
+                    <UserCheck className='h-3 w-3 mr-1' />
                     Activate
                   </>
                 )}
               </Button>
 
               <Button
-                variant="outline"
-                size="sm"
+                variant='outline'
+                size='sm'
                 onClick={() => setShowDeleteDialog(true)}
-                className="text-destructive hover:text-destructive"
+                className='text-destructive hover:text-destructive'
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className='h-3 w-3' />
               </Button>
             </div>
           </div>
@@ -149,7 +129,10 @@ export const UserCard = ({ user, onEdit }: UserCardProps) => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

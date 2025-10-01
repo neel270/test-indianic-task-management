@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 import { AuthController } from '../controllers/auth.controller';
+import { profileImageUpload } from '../../config/multer.config';
 
 export class AuthRoutes {
   public router: Router;
@@ -15,7 +16,7 @@ export class AuthRoutes {
   private initializeRoutes(): void {
     /**
      * @swagger
-     * /api/auth/register:
+     * /api/v1/auth/register:
      *   post:
      *     summary: Register a new user
      *     tags: [Authentication]
@@ -26,13 +27,17 @@ export class AuthRoutes {
      *           schema:
      *             type: object
      *             required:
-     *               - name
+     *               - firstName
+     *               - lastName
      *               - email
      *               - password
      *             properties:
-     *               name:
+     *               firstName:
      *                 type: string
-     *                 example: "John Doe"
+     *                 example: "John"
+     *               lastName:
+     *                 type: string
+     *                 example: "Doe"
      *               email:
      *                 type: string
      *                 format: email
@@ -57,7 +62,7 @@ export class AuthRoutes {
 
     /**
      * @swagger
-     * /api/auth/login:
+     * /api/v1/auth/login:
      *   post:
      *     summary: Login user
      *     tags: [Authentication]
@@ -89,7 +94,7 @@ export class AuthRoutes {
 
     /**
      * @swagger
-     * /api/auth/refresh:
+     * /api/v1/auth/refresh:
      *   post:
      *     summary: Refresh access token
      *     tags: [Authentication]
@@ -115,7 +120,7 @@ export class AuthRoutes {
 
     /**
      * @swagger
-     * /api/auth/forgot-password:
+     * /api/v1/auth/forgot-password:
      *   post:
      *     summary: Request password reset OTP
      *     tags: [Authentication]
@@ -142,7 +147,7 @@ export class AuthRoutes {
 
     /**
      * @swagger
-     * /api/auth/verify-otp:
+     * /api/v1/auth/verify-otp:
      *   post:
      *     summary: Verify OTP for password reset
      *     tags: [Authentication]
@@ -173,7 +178,7 @@ export class AuthRoutes {
 
     /**
      * @swagger
-     * /api/auth/reset-password:
+     * /api/v1/auth/reset-password:
      *   post:
      *     summary: Reset password with reset token
      *     tags: [Authentication]
@@ -184,9 +189,14 @@ export class AuthRoutes {
      *           schema:
      *             type: object
      *             required:
+     *               - email
      *               - resetToken
      *               - newPassword
      *             properties:
+     *               email:
+     *                 type: string
+     *                 format: email
+     *                 example: "john@example.com"
      *               resetToken:
      *                 type: string
      *                 example: "reset-token-here"
@@ -204,7 +214,7 @@ export class AuthRoutes {
 
     /**
      * @swagger
-     * /api/auth/me:
+     * /api/v1/auth/me:
      *   get:
      *     summary: Get current user profile
      *     tags: [Authentication]
@@ -217,5 +227,50 @@ export class AuthRoutes {
      *         description: Unauthorized
      */
     this.router.get('/me', authMiddleware.authenticate, this.authController.me);
-  }
+
+    /**
+     * @swagger
+     * /api/v1/auth/upload-profile-image:
+     *   post:
+     *     summary: Upload profile image
+     *     tags: [Authentication]
+     *     security:
+     *       - bearerAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         multipart/form-data:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               profileImage:
+     *                 type: string
+     *                 format: binary
+     *                 description: Profile image file (JPG, PNG, WebP - max 5MB)
+     *     responses:
+     *       200:
+     *         description: Profile image uploaded successfully
+     *       400:
+     *         description: Bad request
+     *       401:
+     *         description: Unauthorized
+     */
+    this.router.post('/upload-profile-image', authMiddleware.authenticate, profileImageUpload.single('profileImage'), this.authController.uploadProfileImage);
+ }
 }
+
+export const createAuthRoutes = (): Router => {
+ const router = Router();
+ const authController = new AuthController();
+
+ router.post('/register', authController.register);
+ router.post('/login', authController.login);
+ router.post('/refresh', authController.refreshToken);
+ router.post('/forgot-password', authController.forgotPassword);
+ router.post('/verify-otp', authController.verifyOTP);
+ router.post('/reset-password', authController.resetPassword);
+ router.get('/me', authMiddleware.authenticate, authController.me);
+ router.post('/upload-profile-image', authMiddleware.authenticate, profileImageUpload.single('profileImage'), authController.uploadProfileImage);
+
+ return router;
+};

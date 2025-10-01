@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Task } from '@/store/slices/tasksSlice';
 import { Loader2, Upload } from 'lucide-react';
+import { Task } from '@/types/task';
 
 interface TaskDialogProps {
   open: boolean;
@@ -29,8 +29,8 @@ const TaskDialog = ({ open, onOpenChange, onSubmit, task }: TaskDialogProps) => 
   useEffect(() => {
     if (task) {
       setTitle(task.title);
-      setDescription(task.description || '');
-      setDueDate(task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '');
+      setDescription(task.description ?? '');
+      setDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '');
     } else {
       setTitle('');
       setDescription('');
@@ -47,7 +47,7 @@ const TaskDialog = ({ open, onOpenChange, onSubmit, task }: TaskDialogProps) => 
         title,
         description,
         due_date: dueDate,
-        file: file || undefined,
+        ...(file && { file }),
       });
       onOpenChange(false);
     } finally {
@@ -57,90 +57,84 @@ const TaskDialog = ({ open, onOpenChange, onSubmit, task }: TaskDialogProps) => 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className='sm:max-w-md'>
         <DialogHeader>
-          <DialogTitle className="text-2xl">
-            {task ? 'Edit Task' : 'Create New Task'}
-          </DialogTitle>
+          <DialogTitle className='text-2xl'>{task ? 'Edit Task' : 'Create New Task'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+        <form onSubmit={e => void handleSubmit(e)} className='space-y-4'>
+          <div className='space-y-2'>
+            <Label htmlFor='title'>Title</Label>
             <Input
-              id="title"
+              id='title'
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Task title"
+              onChange={e => setTitle(e.target.value)}
+              placeholder='Task title'
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+          <div className='space-y-2'>
+            <Label htmlFor='description'>Description</Label>
             <Textarea
-              id="description"
+              id='description'
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Task description (optional)"
+              onChange={e => setDescription(e.target.value)}
+              placeholder='Task description (optional)'
               rows={3}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="dueDate">Due Date</Label>
+          <div className='space-y-2'>
+            <Label htmlFor='dueDate'>Due Date</Label>
             <Input
-              id="dueDate"
-              type="date"
+              id='dueDate'
+              type='date'
               value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+              onChange={e => setDueDate(e.target.value)}
             />
           </div>
           {!task && (
-            <div className="space-y-2">
-              <Label htmlFor="file">Attachment (Max 10MB)</Label>
-              <div className="flex items-center gap-2">
+            <div className='space-y-2'>
+              <Label htmlFor='file'>Attachment (Max 10MB)</Label>
+              <div className='flex items-center gap-2'>
                 <Input
-                  id="file"
-                  type="file"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  accept=".pdf,.docx,.jpg,.jpeg,.png"
-                  className="hidden"
+                  id='file'
+                  type='file'
+                  onChange={e => setFile(e.target.files?.[0] ?? null)}
+                  accept='.pdf,.docx,.jpg,.jpeg,.png'
+                  className='hidden'
                 />
                 <Button
-                  type="button"
-                  variant="outline"
+                  type='button'
+                  variant='outline'
                   onClick={() => document.getElementById('file')?.click()}
-                  className="w-full"
+                  className='w-full'
                 >
-                  <Upload className="w-4 h-4 mr-2" />
+                  <Upload className='w-4 h-4 mr-2' />
                   {file ? file.name : 'Choose File'}
                 </Button>
               </div>
               {file && (
-                <p className="text-xs text-muted-foreground">
+                <p className='text-xs text-muted-foreground'>
                   {(file.size / 1024 / 1024).toFixed(2)} MB
                 </p>
               )}
             </div>
           )}
-          <div className="flex gap-2 pt-4">
+          <div className='flex gap-2 pt-4'>
             <Button
-              type="button"
-              variant="outline"
+              type='button'
+              variant='outline'
               onClick={() => onOpenChange(false)}
-              className="flex-1"
+              className='flex-1'
               disabled={loading}
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              className="flex-1 bg-gradient-primary hover:opacity-90"
+            <Button
+              type='submit'
+              className='flex-1 bg-gradient-primary hover:opacity-90'
               disabled={loading}
             >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                task ? 'Update' : 'Create'
-              )}
+              {loading ? <Loader2 className='w-4 h-4 animate-spin' /> : task ? 'Update' : 'Create'}
             </Button>
           </div>
         </form>

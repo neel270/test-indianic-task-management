@@ -41,54 +41,48 @@ interface TaskCardProps {
  */
 const TaskCard = ({ task, onEdit, onDelete, onToggleStatus }: TaskCardProps) => {
   return (
-    <Card className="shadow-card hover:shadow-elevated transition-shadow duration-300">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <h3 className="font-semibold text-lg">{task.title}</h3>
+    <Card className='shadow-card hover:shadow-elevated transition-shadow duration-300'>
+      <CardHeader className='pb-3'>
+        <div className='flex items-start justify-between'>
+          <h3 className='font-semibold text-lg'>{task.title}</h3>
           <Badge
             variant={task.status === 'Completed' ? 'default' : 'secondary'}
             className={task.status === 'Completed' ? 'bg-gradient-success' : ''}
           >
             {task.status === 'Completed' ? (
-              <CheckCircle2 className="w-3 h-3 mr-1" />
+              <CheckCircle2 className='w-3 h-3 mr-1' />
             ) : (
-              <Circle className="w-3 h-3 mr-1" />
+              <Circle className='w-3 h-3 mr-1' />
             )}
             {task.status}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {task.description && (
-          <p className="text-sm text-muted-foreground">{task.description}</p>
-        )}
+      <CardContent className='space-y-3'>
+        {task.description && <p className='text-sm text-muted-foreground'>{task.description}</p>}
         {task.dueDate && (
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Calendar className="w-4 h-4 mr-2" />
+          <div className='flex items-center text-sm text-muted-foreground'>
+            <Calendar className='w-4 h-4 mr-2' />
             Due: {format(new Date(task.dueDate), 'MMM dd, yyyy')}
           </div>
         )}
         {task.file?.originalName && (
-          <div className="flex items-center text-sm text-primary">
-            <FileText className="w-4 h-4 mr-2" />
+          <div className='flex items-center text-sm text-primary'>
+            <FileText className='w-4 h-4 mr-2' />
             {task.file.originalName}
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex justify-between pt-3 border-t">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onToggleStatus(task.id, task.status)}
-        >
+      <CardFooter className='flex justify-between pt-3 border-t'>
+        <Button variant='ghost' size='sm' onClick={() => onToggleStatus(task.id, task.status)}>
           {task.status === 'Completed' ? 'Mark Pending' : 'Complete'}
         </Button>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => onEdit(task)}>
-            <Pencil className="w-4 h-4" />
+        <div className='flex gap-2'>
+          <Button variant='ghost' size='sm' onClick={() => onEdit(task)}>
+            <Pencil className='w-4 h-4' />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => onDelete(task.id)}>
-            <Trash2 className="w-4 h-4 text-destructive" />
+          <Button variant='ghost' size='sm' onClick={() => onDelete(task.id)}>
+            <Trash2 className='w-4 h-4 text-destructive' />
           </Button>
         </div>
       </CardFooter>

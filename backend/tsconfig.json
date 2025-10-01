@@ -1,30 +1,12 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "Node16",
+    /* Language and Environment */
+   "target": "ES2020",
+    "module": "commonjs",
     "lib": ["ES2020"],
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "removeComments": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "moduleResolution": "node16",
-    "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    /* Project Structure */
+    "rootDir": "./src",                          // source files
+    "outDir": "./dist",                          // compiled files
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"],
@@ -32,12 +14,35 @@
       "@/domain/*": ["domain/*"],
       "@/infrastructure/*": ["infrastructure/*"],
       "@/interfaces/*": ["interfaces/*"],
-      "@/shared/*": ["shared/*"]
-    }
+      "@/shared/*": ["shared/*"],
+      "@/application/use-cases/*": ["application/use-cases/*"],
+      "@/application/services/*": ["application/services/*"],
+      "@/application/dtos/*": ["application/dtos/*"],
+      "@/domain/entities/*": ["domain/entities/*"],
+      "@/domain/repositories/*": ["domain/repositories/*"],
+      "@/domain/value-objects/*": ["domain/value-objects/*"],
+      "@/infrastructure/rest/*": ["infrastructure/rest/*"],
+      "@/infrastructure/database/*": ["infrastructure/database/*"],
+      "@/infrastructure/services/*": ["infrastructure/services/*"],
+      "@/infrastructure/middlewares/*": ["infrastructure/middlewares/*"],
+      "@/infrastructure/config/*": ["infrastructure/config/*"]
+    },
+
+   "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
   },
-  "include": [
-    "src/**/*"
-  ],
+  "include": ["src/**/*"],
   "exclude": [
     "node_modules",
     "dist",
@@ -45,8 +50,4 @@
     "**/*.spec.ts",
     "**/*.test.ts"
   ],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
-  }
 }

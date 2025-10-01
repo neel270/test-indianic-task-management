@@ -1,6 +1,6 @@
-# 🚚 Courier Service - Full Stack Application
+# Task Management Service - Full Stack Application
 
-A modern, full-stack courier service management application built with React, Node.js, TypeScript, and MongoDB. This application follows industry best practices for scalable web development.
+A modern, full-stack task service management application built with React, Node.js, TypeScript, and MongoDB. This application follows industry best practices for scalable web development.
 
 ## 📋 Table of Contents
 
@@ -159,7 +159,7 @@ MONGO_DATABASE=task-indianic
 JWT_SECRET=your-super-secret-jwt-key
 
 # API Configuration
-VITE_API_BASE_URL=http://localhost:3001/api
+VITE_API_BASE_URL=http://localhost:5000/api/v1
 ```
 
 ### 4. Database Setup
@@ -209,9 +209,9 @@ docker-compose logs -f
 ```
 
 ### Access the Application
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001
-- **API Documentation**: http://localhost:3001/api-docs
+- **Frontend**: http://localhost:8080
+- **Backend API**: http://localhost:5000
+- **API Documentation**: http://localhost:5000/api-docs
 
 ## 🏭 Production
 

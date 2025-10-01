@@ -5,6 +5,7 @@ import { IUserRepository } from '../../domain/repositories/user.repository';
 import { TaskRepositoryImpl } from '../repositories/task.repository.impl';
 import { UserRepositoryImpl } from '../repositories/user.repository.impl';
 import { TaskSocket } from '../sockets/task.socket';
+import { EmailService } from '../services/email.service';
 
 export interface TaskReminderConfig {
   enabled: boolean;
@@ -17,6 +18,7 @@ export interface TaskReminderConfig {
 export class TaskReminderJob {
   private taskService: TaskService;
   private taskSocket: TaskSocket;
+  private emailService: EmailService;
   private config: TaskReminderConfig;
   private isRunning: boolean = false;
   private jobs: cron.ScheduledTask[] = [];
@@ -30,6 +32,7 @@ export class TaskReminderJob {
       new UserRepositoryImpl() as IUserRepository
     );
     this.taskSocket = taskSocket;
+    this.emailService = new EmailService();
 
     this.config = {
       enabled: true,
@@ -161,10 +164,14 @@ export class TaskReminderJob {
         });
       }
 
-      // Email notification can be added later when email service is implemented
-      // if (this.config.emailEnabled) {
-      //   await this.sendEmailReminder(task, hoursBefore);
-      // }
+      // Send email notification
+      if (this.config.emailEnabled) {
+        try {
+          await this.emailService.sendTaskReminderEmail(task, hoursBefore);
+        } catch (error) {
+          console.error(`Failed to send reminder email for task ${task.id}:`, error);
+        }
+      }
 
       // Mark reminder as sent (in a real app, use Redis)
       this.markReminderAsSent(reminderKey);
@@ -202,10 +209,14 @@ export class TaskReminderJob {
         });
       }
 
-      // Email notification can be added later when email service is implemented
-      // if (this.config.emailEnabled) {
-      //   await this.sendUrgentEmailReminder(task);
-      // }
+      // Send urgent email notification
+      if (this.config.emailEnabled) {
+        try {
+          await this.emailService.sendTaskReminderEmail(task, 1);
+        } catch (error) {
+          console.error(`Failed to send urgent reminder email for task ${task.id}:`, error);
+        }
+      }
 
       console.log(`Sent immediate reminder for task: ${task.title}`);
     } catch (error) {
@@ -213,59 +224,11 @@ export class TaskReminderJob {
     }
   }
 
-  /**
-   * Send email reminder
-   */
-  private async sendEmailReminder(task: any, hoursBefore: number): Promise<void> {
-    try {
-      const emailData = {
-        to: task.userEmail || 'user@example.com', // In real app, get from user data
-        subject: `Task Reminder: ${task.title}`,
-        template: 'task-reminder',
-        data: {
-          taskTitle: task.title,
-          taskDescription: task.description,
-          dueDate: task.dueDate,
-          hoursUntilDue: hoursBefore,
-          priority: task.priority,
-          actionUrl: `${process.env.FRONTEND_URL}/tasks/${task.id}`
-        }
-      };
-
-      // await this.emailService.sendEmail(emailData);
-    } catch (error) {
-      console.error('Error sending email reminder:', error);
-    }
-  }
-
-  /**
-   * Send urgent email reminder
-   */
-  private async sendUrgentEmailReminder(task: any): Promise<void> {
-    try {
-      const emailData = {
-        to: task.userEmail || 'user@example.com',
-        subject: `URGENT: Task Due Soon - ${task.title}`,
-        template: 'task-urgent-reminder',
-        data: {
-          taskTitle: task.title,
-          taskDescription: task.description,
-          dueDate: task.dueDate,
-          priority: task.priority,
-          actionUrl: `${process.env.FRONTEND_URL}/tasks/${task.id}`
-        }
-      };
-
-      // await this.emailService.sendEmail(emailData);
-    } catch (error) {
-      console.error('Error sending urgent email reminder:', error);
-    }
-  }
 
   /**
    * Check if reminder was already sent (placeholder implementation)
    */
-  private wasReminderSent(reminderKey: string): boolean {
+  private wasReminderSent(_reminderKey: string): boolean {
     // In a real application, check Redis or database
     return false;
   }
@@ -352,10 +315,14 @@ export class TaskReminderJob {
           });
         }
 
-        // Email notification can be added later when email service is implemented
-        // if (this.config.emailEnabled) {
-        //   await this.sendOverdueEmailNotification(task);
-        // }
+        // Send overdue email notification
+        if (this.config.emailEnabled) {
+          try {
+            await this.emailService.sendTaskReminderEmail(task, 0); // 0 hours means overdue
+          } catch (error) {
+            console.error(`Failed to send overdue email notification for task ${task.id}:`, error);
+          }
+        }
       }
 
       console.log(`Sent overdue notifications for ${overdueTasks.length} tasks`);
@@ -364,28 +331,4 @@ export class TaskReminderJob {
     }
   }
 
-  /**
-   * Send overdue email notification
-   */
-  private async sendOverdueEmailNotification(task: any): Promise<void> {
-    try {
-      const emailData = {
-        to: task.userEmail || 'user@example.com',
-        subject: `OVERDUE: ${task.title}`,
-        template: 'task-overdue',
-        data: {
-          taskTitle: task.title,
-          taskDescription: task.description,
-          dueDate: task.dueDate,
-          daysOverdue: Math.floor((Date.now() - task.dueDate.getTime()) / (1000 * 60 * 60 * 24)),
-          priority: task.priority,
-          actionUrl: `${process.env.FRONTEND_URL}/tasks/${task.id}`
-        }
-      };
-
-      // await this.emailService.sendEmail(emailData);
-    } catch (error) {
-      console.error('Error sending overdue email notification:', error);
-    }
-  }
 }

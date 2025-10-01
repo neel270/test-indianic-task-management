@@ -3,20 +3,24 @@ export interface CreateTaskDto {
   title: string;
   description: string;
   dueDate: string; // ISO date string for validation
+  assignedTo: string;
   status?: 'Pending' | 'Completed';
+  priority?: 'Low' | 'Medium' | 'High';
+  tags?: string[];
 }
 
 export interface UpdateTaskDto {
   title?: string;
   description?: string;
-  status?: 'Pending' | 'Completed';
+  status?: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
+  assignedTo?: string;
   dueDate?: string; // ISO date string for validation
   priority?: 'Low' | 'Medium' | 'High';
   tags?: string[];
 }
 
 export interface TaskFiltersDto {
-  status?: 'Pending' | 'Completed';
+  status?: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
   startDate?: string; // ISO date string for validation
   endDate?: string; // ISO date string for validation
   page?: number;
@@ -30,7 +34,7 @@ export interface TaskIdDto {
 }
 
 export interface TaskStatusDto {
-  status: 'Pending' | 'Completed';
+   status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled';
 }
 
 export interface UploadTaskFileDto {

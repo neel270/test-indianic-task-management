@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { logger } from '../../config/logger';
 
 // Security headers middleware
-export const securityHeaders = (req: Request, res: Response, next: NextFunction) => {
+export const securityHeaders = (_req: Request, res: Response, next: NextFunction) => {
   // Prevent clickjacking
   res.setHeader('X-Frame-Options', 'DENY');
 
@@ -16,31 +16,51 @@ export const securityHeaders = (req: Request, res: Response, next: NextFunction)
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   // Content Security Policy (basic)
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'");
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'"
+  );
 
   // Permissions policy (restrict features)
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=()');
+  res.setHeader(
+    'Permissions-Policy',
+    'geolocation=(), microphone=(), camera=(), payment=(), usb=()'
+  );
 
   next();
 };
 
 // Request validation middleware
 export const validateRequest = (req: Request, res: Response, next: NextFunction) => {
-  // Check for suspicious patterns in request
-  const suspiciousPatterns = [
-    /(\.\.|\/\*|\*\/)/, // Directory traversal
-    /<script[^>]*>.*?<\/script>/gi, // Script tags
-    /javascript:/gi, // JavaScript protocol
-    /vbscript:/gi, // VBScript protocol
-    /onload\s*=/gi, // Event handlers
-    /onerror\s*=/gi, // Error handlers
+  // Skip validation for Swagger UI assets and main docs page
+  const swaggerUiPaths = [
+    '/api-docs/',
+    '/api-docs/swagger-ui.css',
+    '/api-docs/swagger-ui-bundle.js',
+    '/api-docs/swagger-ui-standalone-preset.js',
+    '/api-docs/swagger-ui-init.js',
   ];
 
+  if (swaggerUiPaths.some(path => req.url === path || req.url.startsWith(path))) {
+    return next();
+  }
+
+  // Check for suspicious patterns in request body and query parameters only
+  // (excluding headers to avoid false positives from User-Agent and other legitimate headers)
+  const suspiciousPatterns = [
+    /(\.\.|\/\*|\*\/)/, // Directory traversal in request data
+    /<script[^>]*>.*?<\/script>/gi, // Script tags in request body
+    /javascript:/gi, // JavaScript protocol in request data
+    /vbscript:/gi, // VBScript protocol in request data
+    /onload\s*=/gi, // Event handlers in request data
+    /onerror\s*=/gi, // Error handlers in request data
+  ];
+
+  // Only check body, query, and params - not headers to avoid false positives
   const requestData = JSON.stringify({
     body: req.body,
     query: req.query,
     params: req.params,
-    headers: req.headers,
   });
 
   for (const pattern of suspiciousPatterns) {
@@ -51,6 +71,7 @@ export const validateRequest = (req: Request, res: Response, next: NextFunction)
         url: req.url,
         method: req.method,
         pattern: pattern.source,
+        matchedContent: 'Request body/query contains potentially malicious content',
       });
 
       return res.status(400).json({
@@ -59,7 +80,6 @@ export const validateRequest = (req: Request, res: Response, next: NextFunction)
       });
     }
   }
-
   next();
 };
 
@@ -87,6 +107,19 @@ export const validateRequestSize = (req: Request, res: Response, next: NextFunct
 
 // SQL injection detection middleware
 export const detectSQLInjection = (req: Request, res: Response, next: NextFunction) => {
+  // Skip validation for Swagger UI assets and main docs page
+  const swaggerUiPaths = [
+    '/api-docs/',
+    '/api-docs/swagger-ui.css',
+    '/api-docs/swagger-ui-bundle.js',
+    '/api-docs/swagger-ui-standalone-preset.js',
+    '/api-docs/swagger-ui-init.js',
+  ];
+
+  if (swaggerUiPaths.some(path => req.url === path || req.url.startsWith(path))) {
+    return next();
+  }
+
   const sqlPatterns = [
     /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b)/gi,
     /(--|#|\/\*|\*\/)/g,
@@ -130,6 +163,19 @@ export const detectSQLInjection = (req: Request, res: Response, next: NextFuncti
 
 // NoSQL injection detection middleware
 export const detectNoSQLInjection = (req: Request, res: Response, next: NextFunction) => {
+  // Skip validation for Swagger UI assets and main docs page
+  const swaggerUiPaths = [
+    '/api-docs/',
+    '/api-docs/swagger-ui.css',
+    '/api-docs/swagger-ui-bundle.js',
+    '/api-docs/swagger-ui-standalone-preset.js',
+    '/api-docs/swagger-ui-init.js',
+  ];
+
+  if (swaggerUiPaths.some(path => req.url === path || req.url.startsWith(path))) {
+    return next();
+  }
+
   const nosqlPatterns = [
     /(\$where|\$ne|\$gt|\$lt|\$gte|\$lte)/gi,
     /(\$regex|\$or|\$and|\$exists|\$type)/gi,
@@ -192,10 +238,11 @@ export const securityLogger = (req: Request, res: Response, next: NextFunction) 
 
   // Store original send method for logging
   const originalSend = res.send.bind(res);
-  res.send = function(body: any) {
+  res.send = function (body: any) {
     const responseTime = Date.now() - startTime;
 
-    if (responseTime > 5000) { // Log slow requests
+    if (responseTime > 5000) {
+      // Log slow requests
       logger.warn('Slow request detected', {
         ...securityInfo,
         responseTime,
@@ -203,7 +250,8 @@ export const securityLogger = (req: Request, res: Response, next: NextFunction) 
       });
     }
 
-    if (res.statusCode >= 400) { // Log error responses
+    if (res.statusCode >= 400) {
+      // Log error responses
       logger.warn('Error response', {
         ...securityInfo,
         responseTime,

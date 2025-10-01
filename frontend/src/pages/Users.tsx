@@ -11,14 +11,13 @@ const Users = () => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/auth');
+      navigate('/login');
       return;
     }
 
     // Check if user has admin privileges
     if (user && user.role !== 'admin') {
       navigate('/');
-      return;
     }
   }, [isAuthenticated, user, navigate]);
 
@@ -27,8 +26,8 @@ const Users = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className='min-h-screen bg-gray-50 p-6'>
+      <div className='max-w-7xl mx-auto'>
         <UserList />
       </div>
     </div>

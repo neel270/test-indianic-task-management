@@ -8,6 +8,7 @@ export interface IUserRepository {
   findAll(page?: number, limit?: number): Promise<{ users: UserEntity[]; total: number }>;
   findByRole(role: 'admin' | 'user'): Promise<UserEntity[]>;
   update(id: string, user: Partial<UserEntity>): Promise<UserEntity>;
+  updateProfileImage(id: string, profileImage: string): Promise<UserEntity>;
   delete(id: string): Promise<boolean>;
   exists(email: Email): Promise<boolean>;
 }

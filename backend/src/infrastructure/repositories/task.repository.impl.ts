@@ -11,7 +11,9 @@ export class TaskRepositoryImpl implements ITaskRepository {
   }
 
   async save(task: TaskEntity): Promise<TaskEntity> {
+    console.log('Saving TaskEntity:', task);
     const modelData = TaskModelMapper.toPersistence(task);
+    console.log('Converted TaskModel data:', modelData);
     const savedModel = await this.repository.create(modelData);
     const savedDocument = await savedModel.save();
     return TaskModelMapper.toDomainFromMongoose(savedDocument.toObject());

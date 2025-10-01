@@ -4,17 +4,19 @@ import { TaskRepositoryImpl } from '../../../../infrastructure/repositories/task
 import { UserRepositoryImpl } from '../../../../infrastructure/repositories/user.repository.impl';
 import { VerifyOtpDto } from '../../../dtos/user.dto';
 import { AuthService } from '../../../services/auth.service';
+import { RedisService } from '../../../../infrastructure/services/redis.service';
 
 export class VerifyOTPUseCase {
   private authService: AuthService;
 
   constructor(
     userRepository?: IUserRepository,
-    taskRepository?: ITaskRepository
+    taskRepository?: ITaskRepository,
+    redisService?: RedisService
   ) {
     const userRepo = userRepository || new UserRepositoryImpl();
     const taskRepo = taskRepository || new TaskRepositoryImpl();
-    this.authService = new AuthService(userRepo, taskRepo);
+    this.authService = new AuthService(userRepo, taskRepo, redisService);
   }
 
   async execute(verifyOtpData: VerifyOtpDto): Promise<{ resetToken: string; message: string }> {

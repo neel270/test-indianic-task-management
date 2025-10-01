@@ -15,7 +15,7 @@ export class TaskRoutes {
   private initializeRoutes(): void {
     /**
      * @swagger
-     * /api/tasks:
+     * /api/v/tasks:
      *   post:
      *     summary: Create a new task
      *     tags: [Tasks]
@@ -63,11 +63,11 @@ export class TaskRoutes {
      *       401:
      *         description: Unauthorized
      */
-    this.router.post('/', authMiddleware.authenticate, this.taskController.createTask);
+    this.router.post('/', authMiddleware.authenticate, authMiddleware.userOnly, this.taskController.createTask);
 
     /**
      * @swagger
-     * /api/tasks:
+     * /api/v/tasks:
      *   get:
      *     summary: Get tasks with pagination and filters
      *     tags: [Tasks]
@@ -130,7 +130,7 @@ export class TaskRoutes {
 
     /**
      * @swagger
-     * /api/tasks/{id}:
+     * /api/v/tasks/{id}:
      *   get:
      *     summary: Get task by ID
      *     tags: [Tasks]
@@ -155,7 +155,7 @@ export class TaskRoutes {
 
     /**
      * @swagger
-     * /api/tasks/{id}:
+     * /api/v/tasks/{id}:
      *   put:
      *     summary: Update task
      *     tags: [Tasks]
@@ -206,7 +206,7 @@ export class TaskRoutes {
 
     /**
      * @swagger
-     * /api/tasks/{id}:
+     * /api/v/tasks/{id}:
      *   delete:
      *     summary: Delete task
      *     tags: [Tasks]
@@ -231,7 +231,7 @@ export class TaskRoutes {
 
     /**
      * @swagger
-     * /api/tasks/{id}/complete:
+     * /api/v/tasks/{id}/complete:
      *   patch:
      *     summary: Mark task as completed
      *     tags: [Tasks]
@@ -256,7 +256,7 @@ export class TaskRoutes {
 
     /**
      * @swagger
-     * /api/tasks/{id}/pending:
+     * /api/v/tasks/{id}/pending:
      *   patch:
      *     summary: Mark task as pending
      *     tags: [Tasks]
@@ -281,7 +281,7 @@ export class TaskRoutes {
 
     /**
      * @swagger
-     * /api/tasks/stats:
+     * /api/v/tasks/stats:
      *   get:
      *     summary: Get task statistics
      *     tags: [Tasks]
@@ -294,5 +294,159 @@ export class TaskRoutes {
      *         description: Unauthorized
      */
     this.router.get('/stats', authMiddleware.authenticate, this.taskController.getTaskStats);
-  }
+
+    /**
+     * @swagger
+     * /api/v/tasks/{id}/files:
+     *   post:
+     *     summary: Upload file to task
+     *     tags: [Tasks]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Task ID
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         multipart/form-data:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               file:
+     *                 type: string
+     *                 format: binary
+     *                 description: File to upload (PDF, DOCX, JPG - max 10MB)
+     *     responses:
+     *       201:
+     *         description: File uploaded successfully
+     *       400:
+     *         description: Bad request
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Task not found
+     */
+    this.router.post('/:id/files', authMiddleware.authenticate, this.taskController.uploadTaskFile);
+
+    /**
+     * @swagger
+     * /api/v/tasks/{id}/files:
+     *   get:
+     *     summary: Get task files
+     *     tags: [Tasks]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Task ID
+     *     responses:
+     *       200:
+     *         description: Files retrieved successfully
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Task not found
+     */
+    this.router.get('/:id/files', authMiddleware.authenticate, this.taskController.getTaskFiles);
+
+    /**
+     * @swagger
+     * /api/v/tasks/{id}/files/{fileId}:
+     *   delete:
+     *     summary: Delete task file
+     *     tags: [Tasks]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Task ID
+     *       - in: path
+     *         name: fileId
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: File ID
+     *     responses:
+     *       200:
+     *         description: File deleted successfully
+     *       401:
+     *         description: Unauthorized
+     *       404:
+     *         description: Task or file not found
+     */
+    this.router.delete('/:id/files/:fileId', authMiddleware.authenticate, this.taskController.deleteTaskFile);
+
+    /**
+     * @swagger
+     * /api/v/tasks/export/csv:
+     *   get:
+     *     summary: Export tasks to CSV
+     *     tags: [Tasks]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: query
+     *         name: status
+     *         schema:
+     *           type: string
+     *           enum: [Pending, Completed]
+     *         description: Filter by task status
+     *       - in: query
+     *         name: startDate
+     *         schema:
+     *           type: string
+     *           format: date
+     *         description: Filter tasks from this date
+     *       - in: query
+     *         name: endDate
+     *         schema:
+     *           type: string
+     *           format: date
+     *         description: Filter tasks until this date
+     *     responses:
+     *       200:
+     *         description: CSV file generated successfully
+     *         content:
+     *           text/csv:
+     *             schema:
+     *               type: string
+     *               format: binary
+     *       401:
+     *         description: Unauthorized
+     */
+    this.router.get('/export/csv', authMiddleware.authenticate, this.taskController.exportTasksToCSV);
+ }
 }
+
+export const createTaskRoutes = (): Router => {
+ const router = Router();
+ const taskController = new TaskController();
+
+ router.post('/', authMiddleware.authenticate, taskController.createTask);
+ router.get('/', authMiddleware.authenticate, taskController.getTasks);
+ router.get('/:id', authMiddleware.authenticate, taskController.getTaskById);
+ router.put('/:id', authMiddleware.authenticate, taskController.updateTask);
+ router.delete('/:id', authMiddleware.authenticate, taskController.deleteTask);
+ router.patch('/:id/complete', authMiddleware.authenticate, taskController.markTaskComplete);
+ router.patch('/:id/pending', authMiddleware.authenticate, taskController.markTaskPending);
+ router.get('/stats', authMiddleware.authenticate, taskController.getTaskStats);
+ router.post('/:id/files', authMiddleware.authenticate, taskController.uploadTaskFile);
+ router.get('/:id/files', authMiddleware.authenticate, taskController.getTaskFiles);
+ router.delete('/:id/files/:fileId', authMiddleware.authenticate, taskController.deleteTaskFile);
+ router.get('/export/csv', authMiddleware.authenticate, taskController.exportTasksToCSV);
+
+ return router;
+};

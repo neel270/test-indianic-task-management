@@ -1,10 +1,11 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IUserDocument extends Document {
   _id: mongoose.Types.ObjectId;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   role: 'admin' | 'user';
@@ -25,12 +26,19 @@ export interface IUserDocument extends Document {
 
 const userSchema = new Schema<IUserDocument>(
   {
-    name: {
+    firstName: {
       type: String,
-      required: [true, 'Name is required'],
+      required: [true, 'First name is required'],
       trim: true,
-      minlength: [2, 'Name must be at least 2 characters long'],
-      maxlength: [50, 'Name cannot exceed 50 characters'],
+      minlength: [2, 'First name must be at least 2 characters long'],
+      maxlength: [50, 'First name cannot exceed 50 characters'],
+    },
+    lastName: {
+      type: String,
+      required: [true, 'Last name is required'],
+      trim: true,
+      minlength: [2, 'Last name must be at least 2 characters long'],
+      maxlength: [50, 'Last name cannot exceed 50 characters'],
     },
     email: {
       type: String,
@@ -47,7 +55,6 @@ const userSchema = new Schema<IUserDocument>(
       type: String,
       required: [true, 'Password is required'],
       minlength: [8, 'Password must be at least 8 characters long'],
-      select: false, // Don't include password in queries by default
     },
     role: {
       type: String,
@@ -86,7 +93,7 @@ const userSchema = new Schema<IUserDocument>(
   {
     timestamps: true,
     toJSON: {
-      transform: function (doc, ret: any) {
+      transform: function (_doc, ret: any) {
         ret.id = ret._id;
         delete ret._id;
         delete ret.__v;
@@ -109,8 +116,7 @@ userSchema.pre('save', async function (next) {
   if (!user.isModified('password')) return next();
 
   try {
-    const salt = await bcrypt.genSalt(12);
-    user.password = await bcrypt.hash(user.password, salt);
+    user.password = await bcrypt.hash(this.password as string, 12);
     next();
   } catch (error: any) {
     next(error);
@@ -138,7 +144,7 @@ userSchema.methods.generatePasswordReset = async function (): Promise<string> {
 // Generate OTP
 userSchema.methods.generateOtp = async function (): Promise<string> {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  this.otp = await bcrypt.hash(otp, 10);
+  this.otp = await bcrypt.hash(otp, 12);
   this.otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
   await this.save();
   return otp;

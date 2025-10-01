@@ -4,17 +4,21 @@ import { TaskRepositoryImpl } from '../../../../infrastructure/repositories/task
 import { UserRepositoryImpl } from '../../../../infrastructure/repositories/user.repository.impl';
 import { ForgotPasswordDto } from '../../../dtos/user.dto';
 import { AuthService } from '../../../services/auth.service';
+import { RedisService } from '../../../../infrastructure/services/redis.service';
+import { EmailService } from '../../../../infrastructure/services/email.service';
 
 export class ForgotPasswordUseCase {
   private authService: AuthService;
 
   constructor(
     userRepository?: IUserRepository,
-    taskRepository?: ITaskRepository
+    taskRepository?: ITaskRepository,
+    redisService?: RedisService,
+    emailService?: EmailService
   ) {
     const userRepo = userRepository || new UserRepositoryImpl();
     const taskRepo = taskRepository || new TaskRepositoryImpl();
-    this.authService = new AuthService(userRepo, taskRepo);
+    this.authService = new AuthService(userRepo, taskRepo, redisService, emailService);
   }
 
   async execute(forgotPasswordData: ForgotPasswordDto): Promise<{ message: string; otpExpiresAt: Date }> {

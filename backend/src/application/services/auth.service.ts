@@ -1,10 +1,13 @@
-import { UserEntity } from '@/domain/entities/user.entity';
-import { ITaskRepository } from '@/domain/repositories/task.repository';
-import { IUserRepository } from '@/domain/repositories/user.repository';
-import { Email } from '@/domain/value-objects/email.vo';
-import bcrypt from 'bcrypt';
+import { ITaskRepository } from '../../domain/repositories/task.repository';
+import { IUserRepository } from '../../domain/repositories/user.repository';
+import { RedisService } from '../../infrastructure/services/redis.service';
+import { EmailService } from '../../infrastructure/services/email.service';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import { UserEntity } from '../../domain/entities';
+import { Email } from '../../domain/value-objects/email.vo';
+import { env } from '../../infrastructure/config';
 
 export interface AuthTokens {
   accessToken: string;
@@ -17,23 +20,22 @@ export interface OTPData {
 }
 
 export class AuthService {
-  private readonly jwtSecret: jwt.Secret;
-  private readonly jwtRefreshSecret: jwt.Secret;
-  private readonly jwtExpiresIn: string;
-  private readonly jwtRefreshExpiresIn: string;
   private readonly otpExpiresIn: number = 10 * 60 * 1000; // 10 minutes
 
   constructor(
     private readonly userRepository: IUserRepository,
-    private readonly taskRepository: ITaskRepository
-  ) {
-    this.jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
-    this.jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
-    this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || '15m';
-    this.jwtRefreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
-  }
+    private readonly taskRepository: ITaskRepository,
+    private readonly redisService?: RedisService,
+    private readonly emailService?: EmailService
+  ) {}
 
-  async registerUser(email: string, password: string, name: string, role: 'admin' | 'user' = 'user'): Promise<UserEntity> {
+  async registerUser(
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    role: 'admin' | 'user' = 'user'
+  ): Promise<UserEntity> {
     const emailVo = Email.create(email);
 
     // Check if user already exists
@@ -43,37 +45,43 @@ export class AuthService {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
     // Create user entity
     const user = UserEntity.create({
-      name,
+      firstName,
+      lastName,
       email: emailVo.getValue(),
-      password: hashedPassword,
+      password,
       role,
-      isActive: true
+      isActive: true,
     });
 
     // Save user
     return await this.userRepository.save(user);
   }
 
-  async loginUser(email: string, password: string): Promise<{ user: UserEntity; tokens: AuthTokens }> {
+  async loginUser(
+    email: string,
+    password: string
+  ): Promise<{ user: UserEntity; tokens: AuthTokens }> {
     const emailVo = Email.create(email);
 
     // Find user by email
     const user = await this.userRepository.findByEmail(emailVo);
+    console.log('Login attempt for email:', email);
+    console.log('User found:', user ? user.email : 'No user found');
+    console.log('User password hash:', user);
     if (!user) {
       throw new Error('Invalid credentials');
     }
+    console.log('User is active:', user.isActive);
 
     // Check if user is active
     if (!user.isActive) {
       throw new Error('Account is deactivated');
     }
-
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Password valid:', isPasswordValid);
     if (!isPasswordValid) {
       throw new Error('Invalid credentials');
     }
@@ -87,7 +95,7 @@ export class AuthService {
   async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string }> {
     try {
       // Verify refresh token
-      const payload = jwt.verify(refreshToken, this.jwtRefreshSecret) as any;
+      const payload = jwt.verify(refreshToken, env.jwtRefreshSecret) as any;
 
       // Find user
       const user = await this.userRepository.findById(payload.userId);
@@ -99,8 +107,8 @@ export class AuthService {
       // @ts-ignore - JWT library has complex type definitions
       const accessToken = jwt.sign(
         { userId: user.id, email: user.email, role: user.role },
-        this.jwtSecret,
-        { expiresIn: this.jwtExpiresIn }
+        env.jwtSecret,
+        { expiresIn: env.jwtExpiresIn }
       );
 
       return { accessToken };
@@ -122,12 +130,66 @@ export class AuthService {
     const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + this.otpExpiresIn);
 
-    // In a real application, you would store this OTP in Redis or database
-    // For now, we'll return it (in production, send via email)
+    // Store OTP in Redis with expiration
+    if (this.redisService) {
+      const otpKey = `password_reset_otp:${email}`;
+      await this.redisService.setCache(
+        otpKey,
+        {
+          otp,
+          email,
+          userId: user.id,
+          expiresAt: expiresAt.toISOString(),
+        },
+        this.otpExpiresIn / 1000
+      ); // Convert to seconds for Redis TTL
+    }
+
+    // Send OTP via email
+    if (this.emailService) {
+      try {
+        await this.emailService.sendEmail({
+          to: email,
+          subject: 'Password Reset OTP',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #333;">Password Reset Request</h2>
+              <p>Hello ${user.firstName},</p>
+              <p>You have requested to reset your password. Please use the following OTP to proceed:</p>
+              <div style="background-color: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0; border-radius: 5px;">
+                <h1 style="color: #007bff; font-size: 32px; margin: 0; letter-spacing: 5px;">${otp}</h1>
+              </div>
+              <p><strong>This OTP will expire in 10 minutes.</strong></p>
+              <p>If you didn't request this password reset, please ignore this email.</p>
+              <p>Best regards,<br>Task Management System</p>
+            </div>
+          `,
+          text: `Hello ${user.firstName},
+
+You have requested to reset your password. Please use the following OTP to proceed:
+
+OTP: ${otp}
+
+This OTP will expire in 10 minutes.
+
+If you didn't request this password reset, please ignore this email.
+
+Best regards,
+Task Management System`,
+        });
+      } catch (error) {
+        console.error('Failed to send OTP email:', error);
+        // Don't throw error here, just log it - the OTP is still valid in Redis
+      }
+    }
+
     return { otp, expiresAt };
   }
 
-  async verifyOTP(email: string, otp: string): Promise<{ resetToken: string }> {
+  async verifyOTP(
+    email: string,
+    otp: string
+  ): Promise<{ resetToken: string; hashedToken: string }> {
     const emailVo = Email.create(email);
 
     // Find user
@@ -136,43 +198,110 @@ export class AuthService {
       throw new Error('User not found');
     }
 
-    // In a real application, you would verify the OTP from Redis/database
-    // For now, we'll simulate OTP verification
-    const storedOTP = process.env.DEMO_OTP; // In production, get from Redis
-    if (otp !== storedOTP) {
+    // Verify OTP from Redis
+    if (!this.redisService) {
+      throw new Error('Redis service not available');
+    }
+
+    const otpKey = `password_reset_otp:${email}`;
+    const storedOTPData = await this.redisService.getCache(otpKey);
+
+    if (!storedOTPData || storedOTPData.otp !== otp) {
       throw new Error('Invalid or expired OTP');
+    }
+
+    // Check if OTP has expired
+    const expiresAt = new Date(storedOTPData.expiresAt);
+    if (expiresAt < new Date()) {
+      // Clean up expired OTP
+      await this.redisService.deleteCache(otpKey);
+      throw new Error('OTP has expired');
     }
 
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
-    // In production, store hashedToken in database with expiration
-    return { resetToken };
+    // Store reset token in Redis with expiration (1 hour)
+    const resetTokenKey = `password_reset_token:${email}`;
+    const resetTokenExpiresIn = 60 * 60; // 1 hour in seconds
+    await this.redisService.setCache(
+      resetTokenKey,
+      {
+        hashedToken,
+        userId: user.id,
+        email,
+        expiresAt: new Date(Date.now() + resetTokenExpiresIn * 1000).toISOString(),
+      },
+      resetTokenExpiresIn
+    );
+
+    // Clean up used OTP
+    await this.redisService.deleteCache(otpKey);
+
+    return { resetToken, hashedToken };
   }
 
-  async resetPassword(resetToken: string, newPassword: string): Promise<UserEntity> {
-    // In production, verify the reset token from database
+  async resetPassword(_resetToken: string, _newPassword: string): Promise<UserEntity> {
+    // This method is deprecated in favor of resetPasswordWithEmail
+    throw new Error('This method is deprecated. Please use resetPasswordWithEmail instead.');
+  }
+
+  async resetPasswordWithEmail(
+    email: string,
+    resetToken: string,
+    newPassword: string
+  ): Promise<UserEntity> {
+    if (!this.redisService) {
+      throw new Error('Redis service not available');
+    }
+
+    // Hash the provided reset token to match against stored hash
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
-    // Find user by reset token (in production, query database)
-    // For demo purposes, we'll assume the token is valid
-    const user = await this.userRepository.findById('demo-user-id');
-    if (!user) {
+    // Get stored reset token data from Redis
+    const resetTokenKey = `password_reset_token:${email}`;
+    const storedResetTokenData = await this.redisService.getCache(resetTokenKey);
+
+    if (!storedResetTokenData || storedResetTokenData.hashedToken !== hashedToken) {
       throw new Error('Invalid reset token');
+    }
+
+    // Check if reset token has expired
+    const expiresAt = new Date(storedResetTokenData.expiresAt);
+    if (expiresAt < new Date()) {
+      // Clean up expired reset token
+      await this.redisService.deleteCache(resetTokenKey);
+      throw new Error('Reset token has expired');
+    }
+
+    // Find user
+    const emailVo = Email.create(email);
+    const user = await this.userRepository.findByEmail(emailVo);
+    if (!user) {
+      throw new Error('User not found');
     }
 
     // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     // Update user password
-    return await this.userRepository.update(user.id, {
+    const updatedUser = await this.userRepository.update(user.id, {
       ...user,
-      password: hashedPassword
+      password: hashedPassword,
     });
+
+    // Clean up used reset token
+    await this.redisService.deleteCache(resetTokenKey);
+
+    return updatedUser;
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<UserEntity> {
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+  ): Promise<UserEntity> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new Error('User not found');
@@ -190,7 +319,7 @@ export class AuthService {
     // Update user password
     return await this.userRepository.update(user.id, {
       ...user,
-      password: hashedNewPassword
+      password: hashedNewPassword,
     });
   }
 
@@ -198,27 +327,25 @@ export class AuthService {
     // @ts-ignore - JWT library has complex type definitions
     const accessToken = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
-      this.jwtSecret,
-      { expiresIn: this.jwtExpiresIn }
+      env.jwtSecret,
+      { expiresIn: env.jwtExpiresIn }
     );
 
     // @ts-ignore - JWT library has complex type definitions
-    const refreshToken = jwt.sign(
-      { userId: user.id },
-      this.jwtRefreshSecret,
-      { expiresIn: this.jwtRefreshExpiresIn }
-    );
+    const refreshToken = jwt.sign({ userId: user.id }, env.jwtRefreshSecret, {
+      expiresIn: env.jwtRefreshExpiresIn,
+    });
 
     return { accessToken, refreshToken };
   }
 
   async verifyAccessToken(token: string): Promise<{ userId: string; email: string; role: string }> {
     try {
-      const payload = jwt.verify(token, this.jwtSecret) as any;
+      const payload = jwt.verify(token, env.jwtSecret) as any;
       return {
         userId: payload.userId,
         email: payload.email,
-        role: payload.role
+        role: payload.role,
       };
     } catch (error) {
       throw new Error('Invalid access token');
@@ -252,8 +379,8 @@ export class AuthService {
         totalTasks: total,
         completedTasks,
         pendingTasks,
-        overdueTasks
-      }
+        overdueTasks,
+      },
     };
   }
 }

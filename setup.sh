@@ -49,7 +49,7 @@ else
     exit 1
 fi
 
-# Install frontend dependencies  
+# Install frontend dependencies
 echo ""
 echo "📦 Installing frontend dependencies..."
 cd ../frontend && npm install
@@ -73,13 +73,13 @@ echo "   - For production with Docker: docker-compose up -d"
 echo ""
 echo "Available scripts:"
 echo "- npm run dev:backend  - Start backend development server"
-echo "- npm run dev:frontend - Start frontend development server" 
+echo "- npm run dev:frontend - Start frontend development server"
 echo "- npm run dev:all      - Start both backend and frontend"
 echo "- npm run docker:dev   - Start with Docker for development"
 echo "- npm run docker:prod  - Start with Docker for production"
 echo ""
-echo "API Documentation will be available at: http://localhost:3001/api-docs"
-echo "Frontend will be available at: http://localhost:3000"
+echo "API Documentation will be available at: http://localhost:5000/api-docs"
+echo "Frontend will be available at: http://localhost:8080"
 echo ""
 echo "📚 Don't forget to:"
 echo "   - Configure your Gmail app password for email notifications"

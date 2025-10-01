@@ -81,13 +81,13 @@ export const LazyWrapper: React.FC<LazyWrapperProps> = ({
 
     switch (shimmerType) {
       case 'card':
-        return <ShimmerCard className={className || undefined} />;
+        return <ShimmerCard {...(className && { className })} />;
       case 'list':
-        return <ShimmerList items={shimmerCount} className={className || undefined} />;
+        return <ShimmerList items={shimmerCount} {...(className && { className })} />;
       case 'table':
-        return <ShimmerTable rows={shimmerCount} className={className || undefined} />;
+        return <ShimmerTable rows={shimmerCount} {...(className && { className })} />;
       default:
-        return <ShimmerCard className={className || undefined} />;
+        return <ShimmerCard {...(className && { className })} />;
     }
   };
 
@@ -123,10 +123,10 @@ export const LazyWrapper: React.FC<LazyWrapperProps> = ({
     }
 
     return (
-      <div className="flex items-center justify-center p-8 text-red-600">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold mb-2">Failed to load component</h3>
-          <p className="text-sm">Please try refreshing the page</p>
+      <div className='flex items-center justify-center p-8 text-red-600'>
+        <div className='text-center'>
+          <h3 className='text-lg font-semibold mb-2'>Failed to load component</h3>
+          <p className='text-sm'>Please try refreshing the page</p>
         </div>
       </div>
     );
@@ -134,9 +134,7 @@ export const LazyWrapper: React.FC<LazyWrapperProps> = ({
 
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <ErrorBoundary fallback={<ErrorFallback />}>
-        {children}
-      </ErrorBoundary>
+      <ErrorBoundary fallback={<ErrorFallback />}>{children}</ErrorBoundary>
     </Suspense>
   );
 };
@@ -196,7 +194,7 @@ export function withLazyLoading<P extends object>(
 ) {
   const LazyComponent = React.lazy(importFunc);
 
-  return React.forwardRef<any, P>((props, ref) => (
+  return React.forwardRef<React.ComponentRef<typeof LazyComponent>, P>((props, ref) => (
     <LazyWrapper {...shimmerOptions}>
       <LazyComponent {...props} ref={ref} />
     </LazyWrapper>
@@ -231,20 +229,21 @@ export function useLazyLoading(shimmerOptions?: Omit<LazyWrapperProps, 'children
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, shimmerOptions?.delay || 0);
+    }, shimmerOptions?.delay ?? 0);
 
     return () => clearTimeout(timer);
   }, [shimmerOptions?.delay]);
 
-  const withShimmer = React.useCallback((children: ReactNode) => {
-    if (!isLoading) return children;
+  const withShimmer = React.useCallback(
+    (children: ReactNode) => {
+      if (!isLoading) {
+        return children;
+      }
 
-    return (
-      <LazyWrapper {...shimmerOptions}>
-        {children}
-      </LazyWrapper>
-    );
-  }, [isLoading, shimmerOptions]);
+      return <LazyWrapper {...shimmerOptions}>{children}</LazyWrapper>;
+    },
+    [isLoading, shimmerOptions]
+  );
 
   return { isLoading, withShimmer };
 }

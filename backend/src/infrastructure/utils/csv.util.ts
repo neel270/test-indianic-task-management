@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { Parser } from 'json2csv';
+import { createObjectCsvWriter } from 'csv-writer';
 import * as path from 'path';
 
 export interface CSVExportOptions {
@@ -45,10 +45,20 @@ export class CSVUtil {
   ): Promise<string> {
     try {
       const {
-        fields = ['id', 'title', 'description', 'status', 'priority', 'dueDate', 'createdAt', 'completedAt', 'userName', 'userEmail', 'tags'],
+        fields = [
+          'id',
+          'title',
+          'description',
+          'status',
+          'priority',
+          'dueDate',
+          'createdAt',
+          'completedAt',
+          'userName',
+          'userEmail',
+          'tags',
+        ],
         delimiter = ',',
-        includeHeaders = true,
-        quote = '"'
       } = options;
 
       // Create output directory if it doesn't exist
@@ -57,32 +67,45 @@ export class CSVUtil {
         fs.mkdirSync(outputDir, { recursive: true });
       }
 
-      // Transform data for CSV export
-      const csvData = tasks.map(task => ({
-        ...task,
-        status: task.status,
-        isActive: task.status === 'Active' ? 'Yes' : 'No',
-        tags: task.tags ? task.tags.join('; ') : '',
-        attachments: task.attachments ? task.attachments.join('; ') : ''
+      // Define CSV headers based on fields
+      const headers = fields.map(field => ({
+        id: field,
+        title: field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1'),
       }));
 
-      // Create CSV parser
-      const parser = new Parser({
-        fields,
-        delimiter,
-        includeHeaders,
-        quote
+      // Transform data for CSV export
+      const csvData = tasks.map(task => {
+        const row: any = {};
+        fields.forEach(field => {
+          switch (field) {
+            case 'tags':
+              row[field] = task.tags ? task.tags.join('; ') : '';
+              break;
+            case 'attachments':
+              row[field] = task.attachments ? task.attachments.join('; ') : '';
+              break;
+            default:
+              row[field] = (task as any)[field] || '';
+          }
+        });
+        return row;
       });
 
-      // Generate CSV content
-      const csvContent = parser.parse(csvData);
+      // Create CSV writer
+      const csvWriter = createObjectCsvWriter({
+        path: filePath,
+        header: headers,
+        fieldDelimiter: delimiter,
+      });
 
-      // Write to file
-      fs.writeFileSync(filePath, csvContent, 'utf8');
+      // Write CSV file
+      await csvWriter.writeRecords(csvData);
 
       return filePath;
     } catch (error) {
-      throw new Error(`CSV export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `CSV export failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -98,8 +121,6 @@ export class CSVUtil {
       const {
         fields = ['id', 'name', 'email', 'role', 'isActive', 'createdAt', 'profileImage'],
         delimiter = ',',
-        includeHeaders = true,
-        quote = '"'
       } = options;
 
       // Create output directory if it doesn't exist
@@ -108,30 +129,45 @@ export class CSVUtil {
         fs.mkdirSync(outputDir, { recursive: true });
       }
 
-      // Transform data for CSV export
-      const csvData = users.map(user => ({
-        ...user,
-        isActive: user.isActive === 'true' ? 'Yes' : 'No',
-        role: user.role.toUpperCase()
+      // Define CSV headers based on fields
+      const headers = fields.map(field => ({
+        id: field,
+        title: field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1'),
       }));
 
-      // Create CSV parser
-      const parser = new Parser({
-        fields,
-        delimiter,
-        includeHeaders,
-        quote
+      // Transform data for CSV export
+      const csvData = users.map(user => {
+        const row: any = {};
+        fields.forEach(field => {
+          switch (field) {
+            case 'isActive':
+              row[field] = user.isActive === 'true' ? 'Yes' : 'No';
+              break;
+            case 'role':
+              row[field] = user.role.toUpperCase();
+              break;
+            default:
+              row[field] = (user as any)[field] || '';
+          }
+        });
+        return row;
       });
 
-      // Generate CSV content
-      const csvContent = parser.parse(csvData);
+      // Create CSV writer
+      const csvWriter = createObjectCsvWriter({
+        path: filePath,
+        header: headers,
+        fieldDelimiter: delimiter,
+      });
 
-      // Write to file
-      fs.writeFileSync(filePath, csvContent, 'utf8');
+      // Write CSV file
+      await csvWriter.writeRecords(csvData);
 
       return filePath;
     } catch (error) {
-      throw new Error(`CSV export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `CSV export failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -184,7 +220,7 @@ export class CSVUtil {
         return resolve();
       }
 
-      fs.unlink(filePath, (error) => {
+      fs.unlink(filePath, error => {
         if (error) {
           reject(new Error(`Failed to delete CSV file: ${error.message}`));
         } else {
@@ -197,28 +233,44 @@ export class CSVUtil {
   /**
    * Convert JSON to CSV string
    */
-  static jsonToCSV(
+  static async jsonToCSV(
     data: any[],
     fields?: string[],
     options: CSVExportOptions = {}
-  ): string {
+  ): Promise<string> {
     try {
-      const {
-        delimiter = ',',
-        includeHeaders = true,
-        quote = '"'
-      } = options;
+      const { delimiter = ',' } = options;
 
-      const parser = new Parser({
-        fields,
-        delimiter,
-        includeHeaders,
-        quote
+      // Create temporary file path
+      const tempFilePath = `/tmp/csv_export_${Date.now()}.csv`;
+
+      // Define CSV headers based on fields
+      const headers = (fields || []).map(field => ({
+        id: field,
+        title: field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1'),
+      }));
+
+      // Create CSV writer
+      const csvWriter = createObjectCsvWriter({
+        path: tempFilePath,
+        header: headers,
+        fieldDelimiter: delimiter,
       });
 
-      return parser.parse(data);
+      // Write CSV file
+      await csvWriter.writeRecords(data);
+
+      // Read the file content
+      const csvContent = fs.readFileSync(tempFilePath, 'utf8');
+
+      // Clean up temporary file
+      fs.unlinkSync(tempFilePath);
+
+      return csvContent;
     } catch (error) {
-      throw new Error(`JSON to CSV conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `JSON to CSV conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -236,7 +288,7 @@ export class CSVUtil {
       'createdAt',
       'completedAt',
       'userName',
-      'userEmail'
+      'userEmail',
     ];
   }
 
@@ -244,13 +296,6 @@ export class CSVUtil {
    * Get default fields for user export
    */
   static getDefaultUserFields(): string[] {
-    return [
-      'id',
-      'name',
-      'email',
-      'role',
-      'isActive',
-      'createdAt'
-    ];
+    return ['id', 'name', 'email', 'role', 'isActive', 'createdAt'];
   }
 }

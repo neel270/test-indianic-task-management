@@ -17,19 +17,21 @@ export class RegisterUseCase {
     this.authService = new AuthService(userRepo, taskRepo);
   }
 
-  async execute(userData: CreateUserDto): Promise<{ id: string; email: string; name: string }> {
+  async execute(userData: CreateUserDto): Promise<{ id: string; email: string; firstName: string; lastName: string }> {
     try {
       const user = await this.authService.registerUser(
         userData.email,
         userData.password,
-        userData.name,
+        userData.firstName,
+        userData.lastName,
         userData.role || 'user'
       );
 
       return {
         id: user.id,
         email: user.email,
-        name: user.name
+        firstName: user.firstName,
+        lastName: user.lastName
       };
     } catch (error) {
       throw new Error(`Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

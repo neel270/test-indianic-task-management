@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import { env } from '../config/env';
+import { UserSchema } from './schemas/user.schema';
+import { TaskSchema } from './schemas/task.schema';
 
 export class MongoDBConnection {
   private static instance: MongoDBConnection;
@@ -13,7 +15,17 @@ export class MongoDBConnection {
     }
     return MongoDBConnection.instance;
   }
-
+  private async createCollections(): Promise<void> {
+    try {
+      const User = UserSchema;
+      const Task = TaskSchema;
+      await User.createCollection();
+      await Task.createCollection();
+      console.log('All collections are created or already exist');
+    } catch (error) {
+      console.error('Error creating collections:', error);
+    }
+  }
   public async connect(): Promise<void> {
     if (this.isConnected) {
       return;
@@ -26,12 +38,14 @@ export class MongoDBConnection {
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
+        dbName: env.mongodbDbName,
       });
 
       this.isConnected = true;
       console.log('MongoDB connected successfully');
-
-      mongoose.connection.on('error', (error) => {
+      // Create collections for all your models
+      await this.createCollections();
+      mongoose.connection.on('error', (error: Error) => {
         console.error('MongoDB connection error:', error);
       });
 
@@ -39,7 +53,6 @@ export class MongoDBConnection {
         console.log('MongoDB disconnected');
         this.isConnected = false;
       });
-
     } catch (error) {
       console.error('Error connecting to MongoDB:', error);
       throw error;

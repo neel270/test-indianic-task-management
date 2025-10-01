@@ -10,17 +10,72 @@ type AuthenticatedSocket = Socket & {
 };
 
 export class TaskSocket {
-  private io: SocketIOServer;
+  private io: SocketIOServer | null = null;
   private authService: AuthService;
   private userSockets: Map<string, Set<string>> = new Map(); // userId -> Set of socketIds
 
-  constructor(io: SocketIOServer) {
-    this.io = io;
+  constructor(io?: SocketIOServer) {
     this.authService = new AuthService(new UserRepositoryImpl(), new TaskRepositoryImpl());
-    this.initializeSocketHandlers();
+
+    if (io) {
+      console.log('TaskSocket: SocketIO server provided, validating...');
+      console.log('TaskSocket: Server type:', io.constructor?.name);
+      console.log('TaskSocket: Has on method:', typeof io.on === 'function');
+      console.log('TaskSocket: Has emit method:', typeof io.emit === 'function');
+
+      if (this.isValidSocketIOServer(io)) {
+        this.io = io;
+        console.log('TaskSocket: SocketIO server validated successfully');
+        this.initializeSocketHandlers();
+      } else {
+        console.warn(
+          'TaskSocket: Provided server failed validation. Socket functionality will be disabled.'
+        );
+        console.warn('TaskSocket: Expected SocketIO Server, got:', typeof io);
+      }
+    } else {
+      console.warn(
+        'TaskSocket: No SocketIO server provided. Socket functionality will be disabled.'
+      );
+    }
+  }
+
+  private isValidSocketIOServer(io: any): io is SocketIOServer {
+    // More robust validation for SocketIO server
+    if (!io || typeof io !== 'object') {
+      console.log('TaskSocket: io is not an object:', typeof io);
+      return false;
+    }
+
+    if (typeof io.on !== 'function') {
+      console.log('TaskSocket: io.on is not a function:', typeof io.on);
+      return false;
+    }
+
+    if (typeof io.emit !== 'function') {
+      console.log('TaskSocket: io.emit is not a function:', typeof io.emit);
+      return false;
+    }
+
+    // Check for SocketIO specific methods (these might not exist in older versions)
+    const hasToMethod = typeof io.to === 'function';
+    const hasInMethod = typeof io.in === 'function';
+    const constructorName = io.constructor?.name;
+
+    console.log('TaskSocket: SocketIO validation details:', {
+      hasToMethod,
+      hasInMethod,
+      constructorName,
+      isValid: true // If we get here, basic validation passed
+    });
+
+    // Accept the server if it has the basic required methods
+    return true;
   }
 
   private initializeSocketHandlers(): void {
+    if (!this.io) return;
+
     this.io.on('connection', (socket: AuthenticatedSocket) => {
       console.log('User connected:', socket.id);
 
@@ -55,11 +110,12 @@ export class TaskSocket {
           // Notify all users about new task (for admins) or just the user
           socket.broadcast.emit('task_created', {
             ...taskData,
-            createdBy: socket.userId
+            createdBy: socket.userId,
           });
-
-          // Also emit to user-specific room
-          this.io.to(`user:${socket.userId}`).emit('task_created', taskData);
+          if (this.io) {
+            // Also emit to user-specific room
+            this.io.to(`user:${socket.userId}`).emit('task_created', taskData);
+          }
         }
       });
 
@@ -68,7 +124,7 @@ export class TaskSocket {
         if (socket.userId) {
           socket.broadcast.emit('task_updated', {
             ...taskData,
-            updatedBy: socket.userId
+            updatedBy: socket.userId,
           });
         }
       });
@@ -78,7 +134,7 @@ export class TaskSocket {
         if (socket.userId) {
           socket.broadcast.emit('task_deleted', {
             ...taskData,
-            deletedBy: socket.userId
+            deletedBy: socket.userId,
           });
         }
       });
@@ -88,7 +144,7 @@ export class TaskSocket {
         if (socket.userId) {
           socket.broadcast.emit('task_status_changed', {
             ...taskData,
-            changedBy: socket.userId
+            changedBy: socket.userId,
           });
         }
       });
@@ -97,10 +153,12 @@ export class TaskSocket {
       socket.on('task_assigned', (taskData: any) => {
         if (socket.userId && taskData.assignedTo) {
           // Notify the assigned user
-          this.io.to(`user:${taskData.assignedTo}`).emit('task_assigned', {
-            ...taskData,
-            assignedBy: socket.userId
-          });
+          if (this.io) {
+            this.io.to(`user:${taskData.assignedTo}`).emit('task_assigned', {
+              ...taskData,
+              assignedBy: socket.userId,
+            });
+          }
 
           socket.emit('task_assigned_success', { message: 'Task assigned successfully' });
         }
@@ -112,7 +170,7 @@ export class TaskSocket {
           socket.broadcast.to(`task:${taskId}`).emit('user_typing_start', {
             userId: socket.userId,
             userEmail: socket.userEmail,
-            taskId
+            taskId,
           });
         }
       });
@@ -122,7 +180,7 @@ export class TaskSocket {
           socket.broadcast.to(`task:${taskId}`).emit('user_typing_stop', {
             userId: socket.userId,
             userEmail: socket.userEmail,
-            taskId
+            taskId,
           });
         }
       });
@@ -132,7 +190,7 @@ export class TaskSocket {
         if (socket.userId) {
           socket.broadcast.emit('task_comment_added', {
             ...commentData,
-            commentedBy: socket.userId
+            commentedBy: socket.userId,
           });
         }
       });
@@ -140,7 +198,9 @@ export class TaskSocket {
       // Handle task reminders
       socket.on('task_reminder_due', (taskData: any) => {
         if (socket.userId) {
-          this.io.to(`user:${socket.userId}`).emit('task_reminder', taskData);
+          if (this.io) {
+            this.io.to(`user:${socket.userId}`).emit('task_reminder', taskData);
+          }
         }
       });
 
@@ -149,7 +209,7 @@ export class TaskSocket {
         if (socket.userId) {
           socket.broadcast.emit('user_online', {
             userId: socket.userId,
-            userEmail: socket.userEmail
+            userEmail: socket.userEmail,
           });
         }
       });
@@ -158,7 +218,7 @@ export class TaskSocket {
         if (socket.userId) {
           socket.broadcast.emit('user_offline', {
             userId: socket.userId,
-            userEmail: socket.userEmail
+            userEmail: socket.userEmail,
           });
         }
       });
@@ -189,7 +249,7 @@ export class TaskSocket {
               // Notify others that user went offline
               socket.broadcast.emit('user_offline', {
                 userId: socket.userId,
-                userEmail: socket.userEmail
+                userEmail: socket.userEmail,
               });
             }
           }
@@ -197,31 +257,37 @@ export class TaskSocket {
       });
 
       // Handle connection errors
-      socket.on('error', (error) => {
+      socket.on('error', error => {
         console.error('Socket error:', error);
         socket.emit('error', { message: 'Socket connection error' });
       });
     });
 
     // Handle server-level events
-    this.io.on('connection_error', (error) => {
+    this.io.on('connection_error', error => {
       console.error('Connection error:', error);
     });
   }
 
   // Method to emit task updates to specific users
   public emitTaskUpdateToUser(userId: string, event: string, data: any): void {
-    this.io.to(`user:${userId}`).emit(event, data);
+    if (this.io) {
+      this.io.to(`user:${userId}`).emit(event, data);
+    }
   }
 
   // Method to emit task updates to all users with specific role
   public emitTaskUpdateToRole(role: string, event: string, data: any): void {
-    this.io.to(`role:${role}`).emit(event, data);
+    if (this.io) {
+      this.io.to(`role:${role}`).emit(event, data);
+    }
   }
 
   // Method to emit task updates to all connected users
   public emitTaskUpdateToAll(event: string, data: any): void {
-    this.io.emit(event, data);
+    if (this.io) {
+      this.io.emit(event, data);
+    }
   }
 
   // Method to get online users count
@@ -241,16 +307,22 @@ export class TaskSocket {
 
   // Method to send notification to specific user
   public sendNotificationToUser(userId: string, notification: any): void {
-    this.io.to(`user:${userId}`).emit('notification', notification);
+    if (this.io) {
+      this.io.to(`user:${userId}`).emit('notification', notification);
+    }
   }
 
   // Method to broadcast task reminder
   public broadcastTaskReminder(taskData: any): void {
-    this.io.emit('task_reminder', taskData);
+    if (this.io) {
+      this.io.emit('task_reminder', taskData);
+    }
   }
 
   // Method to broadcast system announcement
   public broadcastAnnouncement(announcement: any): void {
-    this.io.emit('system_announcement', announcement);
+    if (this.io) {
+      this.io.emit('system_announcement', announcement);
+    }
   }
 }

@@ -1,13 +1,21 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { AuthService, User, LoginRequest, CreateUserRequest } from '@/services/api';
-import { toast } from 'sonner';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 // Types
-interface AuthState {
+export interface User {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  profileImage?: string;
+  role?: string;
+  createdAt?: string;
+}
+
+export interface AuthState {
   user: User | null;
   token: string | null;
-  isLoading: boolean;
   isAuthenticated: boolean;
+  isLoading: boolean;
   error: string | null;
 }
 
@@ -15,156 +23,85 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   token: null,
-  isLoading: false,
   isAuthenticated: false,
+  isLoading: false,
   error: null,
 };
-
-// Async thunks
-export const loginUser = createAsyncThunk(
-  'auth/login',
-  async (credentials: LoginRequest, { rejectWithValue }) => {
-    try {
-      const response = await AuthService.login(credentials);
-      return response;
-    } catch (error: unknown) {
-      return rejectWithValue((error as Error).message || 'Login failed');
-    }
-  }
-);
-
-export const registerUser = createAsyncThunk(
-  'auth/register',
-  async (userData: CreateUserRequest, { rejectWithValue }) => {
-    try {
-      const response = await AuthService.register(userData);
-      return response;
-    } catch (error: unknown) {
-      return rejectWithValue((error as Error).message || 'Registration failed');
-    }
-  }
-);
-
-export const loadUserProfile = createAsyncThunk(
-  'auth/loadProfile',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await AuthService.getProfile();
-      if (response.success && response.data) {
-        return response.data;
-      }
-      throw new Error('Failed to load profile');
-    } catch (error: unknown) {
-      return rejectWithValue((error as Error).message || 'Failed to load profile');
-    }
-  }
-);
-
-export const logoutUser = createAsyncThunk(
-  'auth/logout',
-  async (_, { dispatch }) => {
-    try {
-      await AuthService.logout();
-      dispatch(clearAuthState());
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  }
-);
 
 // Auth slice
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    clearAuthState: (state) => {
+    // Login actions
+    loginStart(state: AuthState) {
+      state.isLoading = true;
+      state.error = null;
+    },
+    loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
+      state.isLoading = false;
+      state.isAuthenticated = true;
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+      state.error = null;
+    },
+    loginFailure: (state, action: PayloadAction<string>) => {
+      state.isLoading = false;
+      state.isAuthenticated = false;
+      state.user = null;
+      state.token = null;
+      state.error = action.payload;
+    },
+
+    // Logout action
+    logout(state: AuthState) {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
       state.error = null;
     },
-    clearError: (state) => {
+
+    // Profile update actions
+    updateProfileStart(state: AuthState) {
+      state.isLoading = true;
       state.error = null;
     },
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.isLoading = action.payload;
+    updateProfileSuccess: (state, action: PayloadAction<User>) => {
+      state.isLoading = false;
+      state.user = action.payload;
+      state.error = null;
     },
-  },
-  extraReducers: (builder) => {
-    builder
-      // Login cases
-      .addCase(loginUser.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(loginUser.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.isAuthenticated = true;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.error = null;
-        toast.success('Logged in successfully!');
-      })
-      .addCase(loginUser.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-        state.isAuthenticated = false;
-        state.user = null;
-        state.token = null;
-        toast.error(action.payload as string);
-      })
+    updateProfileFailure: (state, action: PayloadAction<string>) => {
+      state.isLoading = false;
+      state.error = action.payload;
+    },
 
-      // Register cases
-      .addCase(registerUser.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(registerUser.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.isAuthenticated = true;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.error = null;
-        toast.success('Account created successfully!');
-      })
-      .addCase(registerUser.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-        state.isAuthenticated = false;
-        state.user = null;
-        state.token = null;
-        toast.error(action.payload as string);
-      })
+    // Clear error action
+    clearError(state: AuthState) {
+      state.error = null;
+    },
 
-      // Load profile cases
-      .addCase(loadUserProfile.pending, (state) => {
-        state.isLoading = true;
-      })
-      .addCase(loadUserProfile.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload as User;
-        state.isAuthenticated = true;
-        state.error = null;
-      })
-      .addCase(loadUserProfile.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-        state.isAuthenticated = false;
-        state.user = null;
-        state.token = null;
-      });
   },
 });
 
 // Export actions
-export const { clearAuthState, clearError, setLoading } = authSlice.actions;
+export const {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  logout,
+  updateProfileStart,
+  updateProfileSuccess,
+  updateProfileFailure,
+  clearError,
+} = authSlice.actions;
 
-// Export reducer
-export default authSlice.reducer;
-
-// Selectors
-export const selectAuth = (state: { auth: AuthState }) => state.auth;
+// Export selectors
 export const selectUser = (state: { auth: AuthState }) => state.auth.user;
 export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.isAuthenticated;
 export const selectAuthLoading = (state: { auth: AuthState }) => state.auth.isLoading;
 export const selectAuthError = (state: { auth: AuthState }) => state.auth.error;
+export const selectAuthToken = (state: { auth: AuthState }) => state.auth.token;
+
+// Export reducer
+export default authSlice.reducer;

@@ -9,23 +9,26 @@ export interface ApiResponse<T = unknown> {
 // User related types
 export interface User {
   id: string | number;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: 'admin' | 'user';
   isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateUserRequest {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   role?: 'admin' | 'user';
 }
 
 export interface UpdateUserRequest {
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
   role?: 'admin' | 'user';
   isActive?: boolean;

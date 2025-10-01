@@ -1,8 +1,9 @@
-import { UserEntity } from '@/domain/entities/user.entity';
+import { UserEntity } from '../../../domain/entities';
 
 export interface UserModel {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   role: 'admin' | 'user';
@@ -16,7 +17,8 @@ export class UserModelMapper {
   static toDomain(model: UserModel): UserEntity {
     return new UserEntity(
       model.id,
-      model.name,
+      model.firstName,
+      model.lastName,
       model.email,
       model.password,
       model.role,
@@ -30,7 +32,8 @@ export class UserModelMapper {
   static toDomainFromMongoose(mongooseDoc: any): UserEntity {
     return new UserEntity(
       mongooseDoc.id || mongooseDoc._id?.toString(),
-      mongooseDoc.name,
+      mongooseDoc.firstName,
+      mongooseDoc.lastName,
       mongooseDoc.email,
       mongooseDoc.password,
       mongooseDoc.role,
@@ -44,7 +47,8 @@ export class UserModelMapper {
   static toPersistence(domain: UserEntity): UserModel {
     return {
       id: domain.id,
-      name: domain.name,
+      firstName: domain.firstName,
+      lastName: domain.lastName,
       email: domain.email,
       password: domain.password,
       role: domain.role,

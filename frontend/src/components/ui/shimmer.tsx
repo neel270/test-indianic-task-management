@@ -99,7 +99,7 @@ export const ShimmerAvatar: React.FC<{ size?: number; className?: string }> = ({
     <Shimmer
       width={size}
       height={size}
-      borderRadius="50%"
+      borderRadius='50%'
       className={cn('rounded-full', className)}
     />
   );
@@ -116,16 +116,16 @@ export const ShimmerAvatar: React.FC<{ size?: number; className?: string }> = ({
 export const ShimmerCard: React.FC<{ className?: string }> = ({ className }) => {
   return (
     <div className={cn('p-6 border rounded-lg space-y-4', className)}>
-      <div className="flex items-center space-x-4">
+      <div className='flex items-center space-x-4'>
         <ShimmerAvatar size={48} />
-        <div className="flex-1">
+        <div className='flex-1'>
           <ShimmerText lines={2} />
         </div>
       </div>
-      <Shimmer height={120} className="w-full" />
-      <div className="flex justify-between items-center">
+      <Shimmer height={120} className='w-full' />
+      <div className='flex justify-between items-center'>
         <Shimmer width={80} height={32} />
-        <div className="flex space-x-2">
+        <div className='flex space-x-2'>
           <Shimmer width={60} height={32} />
           <Shimmer width={60} height={32} />
         </div>
@@ -148,11 +148,7 @@ export const ShimmerList: React.FC<{
   items?: number;
   ItemComponent?: React.ComponentType<{ className?: string }>;
   className?: string;
-}> = ({
-  items = 3,
-  ItemComponent = ShimmerCard,
-  className,
-}) => {
+}> = ({ items = 3, ItemComponent = ShimmerCard, className }) => {
   return (
     <div className={cn('space-y-4', className)}>
       {Array.from({ length: items }).map((_, index) => (
@@ -176,15 +172,11 @@ export const ShimmerTable: React.FC<{
   rows?: number;
   columns?: number;
   className?: string;
-}> = ({
-  rows = 5,
-  columns = 4,
-  className,
-}) => {
+}> = ({ rows = 5, columns = 4, className }) => {
   return (
     <div className={cn('space-y-4', className)}>
       {/* Header */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
+      <div className='grid gap-4' style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
         {Array.from({ length: columns }).map((_, index) => (
           <Shimmer key={`header-${index}`} height={20} />
         ))}
@@ -192,7 +184,11 @@ export const ShimmerTable: React.FC<{
 
       {/* Rows */}
       {Array.from({ length: rows }).map((_, rowIndex) => (
-        <div key={`row-${rowIndex}`} className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
+        <div
+          key={`row-${rowIndex}`}
+          className='grid gap-4'
+          style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
+        >
           {Array.from({ length: columns }).map((_, colIndex) => (
             <Shimmer key={`cell-${rowIndex}-${colIndex}`} height={16} />
           ))}

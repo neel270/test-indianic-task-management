@@ -18,7 +18,7 @@ export class LoginUseCase {
   }
 
   async execute(loginData: LoginUserDto): Promise<{
-    user: { id: string; email: string; name: string; role: string };
+    user: { id: string; email: string; firstName: string; lastName: string; role: string };
     tokens: { accessToken: string; refreshToken: string };
   }> {
     try {
@@ -28,7 +28,8 @@ export class LoginUseCase {
         user: {
           id: result.user.id,
           email: result.user.email,
-          name: result.user.name,
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
           role: result.user.role
         },
         tokens: result.tokens

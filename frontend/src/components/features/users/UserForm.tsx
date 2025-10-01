@@ -1,13 +1,25 @@
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAppDispatch } from '@/store/hooks';
-import { createUser, updateUser } from '@/store/slices/userSlice';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useCreateUser, useUpdateUser } from '@/hooks/useUserApi';
 import { CreateUserRequest, UpdateUserRequest, User } from '@/types/api';
 import { Form, Formik, FormikHelpers } from 'formik';
 import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toastError } from '@/hooks/use-toast';
 import * as Yup from 'yup';
 
 const userSchema = Yup.object({
@@ -33,18 +45,22 @@ interface UserFormProps {
 }
 
 export const UserForm = ({ user, open, onOpenChange }: UserFormProps) => {
-  const dispatch = useAppDispatch();
   const isEditing = !!user;
+  const createUserMutation = useCreateUser();
+  const updateUserMutation = useUpdateUser();
 
   const initialValues: UserFormData = {
-    name: user?.name || '',
-    email: user?.email || '',
+    name: user?.name ?? '',
+    email: user?.email ?? '',
     password: '',
-    role: user?.role || 'user',
+    role: user?.role ?? 'user',
     isActive: user?.isActive ?? true,
   };
 
-  const handleSubmit = async (values: UserFormData, { setSubmitting, resetForm }: FormikHelpers<UserFormData>) => {
+  const handleSubmit = async (
+    values: UserFormData,
+    { setSubmitting, resetForm }: FormikHelpers<UserFormData>
+  ) => {
     try {
       if (isEditing && user) {
         const updateData: UpdateUserRequest = {
@@ -53,8 +69,7 @@ export const UserForm = ({ user, open, onOpenChange }: UserFormProps) => {
           role: values.role,
           isActive: values.isActive ?? true,
         };
-        await dispatch(updateUser({ id: user.id.toString(), userData: updateData })).unwrap();
-        toast.success('User updated successfully!');
+        await updateUserMutation.mutateAsync({ id: user.id.toString(), userData: updateData });
       } else {
         const createData: CreateUserRequest = {
           name: values.name,
@@ -62,13 +77,13 @@ export const UserForm = ({ user, open, onOpenChange }: UserFormProps) => {
           password: values.password!,
           role: values.role,
         };
-        await dispatch(createUser(createData)).unwrap();
-        toast.success('User created successfully!');
+        await createUserMutation.mutateAsync(createData);
       }
       onOpenChange(false);
       resetForm();
-    } catch (error: unknown) {
-      toast.error(`Failed to ${isEditing ? 'update' : 'create'} user`);
+    } catch {
+      toastError(isEditing ? 'Failed to update user.' : 'Failed to create user.');
+      // Error is handled by the mutation
     } finally {
       setSubmitting(false);
     }
@@ -81,16 +96,13 @@ export const UserForm = ({ user, open, onOpenChange }: UserFormProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className='sm:max-w-[425px]'>
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Edit User' : 'Create New User'}
-          </DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit User' : 'Create New User'}</DialogTitle>
           <DialogDescription>
             {isEditing
               ? 'Update the user information below.'
-              : 'Fill in the information to create a new user.'
-            }
+              : 'Fill in the information to create a new user.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -100,121 +112,130 @@ export const UserForm = ({ user, open, onOpenChange }: UserFormProps) => {
           onSubmit={handleSubmit}
           enableReinitialize={true}
         >
-          {({ values, errors, touched, handleChange, handleBlur, isSubmitting, resetForm, setFieldValue }) => (
+          {({
+            values,
+            errors,
+            touched,
+            handleChange,
+            handleBlur,
+            isSubmitting,
+            resetForm,
+            setFieldValue,
+          }) => (
             <Form>
-              <form className="space-y-4">
+              <form className='space-y-4'>
                 <div>
-                  <label htmlFor="name" className="text-sm font-medium">
+                  <label htmlFor='name' className='text-sm font-medium'>
                     Name
                   </label>
                   <Input
-                    id="name"
-                    name="name"
-                    placeholder="Enter full name"
+                    id='name'
+                    name='name'
+                    placeholder='Enter full name'
                     value={values.name}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={errors.name && touched.name ? 'border-red-500' : ''}
                   />
                   {errors.name && touched.name && (
-                    <div className="text-sm text-red-500 mt-1">{errors.name}</div>
+                    <div className='text-sm text-red-500 mt-1'>{errors.name}</div>
                   )}
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="text-sm font-medium">
+                  <label htmlFor='email' className='text-sm font-medium'>
                     Email
                   </label>
                   <Input
-                    id="email"
-                    name="email"
-                    placeholder="Enter email address"
-                    type="email"
+                    id='email'
+                    name='email'
+                    placeholder='Enter email address'
+                    type='email'
                     value={values.email}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={errors.email && touched.email ? 'border-red-500' : ''}
                   />
                   {errors.email && touched.email && (
-                    <div className="text-sm text-red-500 mt-1">{errors.email}</div>
+                    <div className='text-sm text-red-500 mt-1'>{errors.email}</div>
                   )}
                 </div>
 
                 {!isEditing && (
                   <div>
-                    <label htmlFor="password" className="text-sm font-medium">
+                    <label htmlFor='password' className='text-sm font-medium'>
                       Password
                     </label>
                     <Input
-                      id="password"
-                      name="password"
-                      placeholder="Enter password"
-                      type="password"
+                      id='password'
+                      name='password'
+                      placeholder='Enter password'
+                      type='password'
                       value={values.password}
                       onChange={handleChange}
                       onBlur={handleBlur}
                       className={errors.password && touched.password ? 'border-red-500' : ''}
                     />
                     {errors.password && touched.password && (
-                      <div className="text-sm text-red-500 mt-1">{errors.password}</div>
+                      <div className='text-sm text-red-500 mt-1'>{errors.password}</div>
                     )}
                   </div>
                 )}
 
                 <div>
-                  <label htmlFor="role" className="text-sm font-medium">
+                  <label htmlFor='role' className='text-sm font-medium'>
                     Role
                   </label>
                   <Select
                     value={values.role}
-                    onValueChange={(value) => setFieldValue('role', value)}
+                    onValueChange={(value: string) => void setFieldValue('role', value)}
                   >
                     <SelectTrigger className={errors.role && touched.role ? 'border-red-500' : ''}>
-                      <SelectValue placeholder="Select a role" />
+                      <SelectValue placeholder='Select a role' />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value='user'>User</SelectItem>
+                      <SelectItem value='admin'>Admin</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.role && touched.role && (
-                    <div className="text-sm text-red-500 mt-1">{errors.role}</div>
+                    <div className='text-sm text-red-500 mt-1'>{errors.role}</div>
                   )}
                 </div>
 
                 {isEditing && (
                   <div>
-                    <label htmlFor="isActive" className="text-sm font-medium">
+                    <label htmlFor='isActive' className='text-sm font-medium'>
                       Status
                     </label>
                     <Select
-                      value={values.isActive?.toString()}
-                      onValueChange={(value) => setFieldValue('isActive', value === 'true')}
+                      value={String(values.isActive?.toString())}
+                      onValueChange={(value: string) =>
+                        void setFieldValue('isActive', value === 'true')
+                      }
                     >
-                      <SelectTrigger className={errors.isActive && touched.isActive ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Select status" />
+                      <SelectTrigger
+                        className={errors.isActive && touched.isActive ? 'border-red-500' : ''}
+                      >
+                        <SelectValue placeholder='Select status' />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="true">Active</SelectItem>
-                        <SelectItem value="false">Inactive</SelectItem>
+                        <SelectItem value='true'>Active</SelectItem>
+                        <SelectItem value='false'>Inactive</SelectItem>
                       </SelectContent>
                     </Select>
                     {errors.isActive && touched.isActive && (
-                      <div className="text-sm text-red-500 mt-1">{errors.isActive}</div>
+                      <div className='text-sm text-red-500 mt-1'>{errors.isActive}</div>
                     )}
                   </div>
                 )}
 
                 <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleCancel(resetForm)}
-                  >
+                  <Button type='button' variant='outline' onClick={() => handleCancel(resetForm)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button type='submit' disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
                     {isEditing ? 'Update User' : 'Create User'}
                   </Button>
                 </DialogFooter>

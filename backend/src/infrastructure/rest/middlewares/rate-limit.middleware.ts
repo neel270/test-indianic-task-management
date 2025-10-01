@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 
 // In-memory store for rate limiting (in production, use Redis)
-interface RateLimitEntry {
+export interface RateLimitEntry {
   count: number;
   resetTime: number;
 }
@@ -51,15 +51,15 @@ export interface RateLimitConfig {
 }
 
 export const createRateLimit = (config: RateLimitConfig = {}) => {
-  const {
-    windowMs = 15 * 60 * 1000, // 15 minutes
-    maxRequests = 100, // 100 requests per window
-    skipSuccessfulRequests = false,
-    skipFailedRequests = false,
-    message = 'Too many requests, please try again later.',
-    standardHeaders = true,
-    legacyHeaders = false,
-  } = config;
+   const {
+    //  windowMs = 15 * 60 * 1000, // 15 minutes
+     maxRequests = 100, // 100 requests per window
+     skipSuccessfulRequests = false,
+  //    skipFailedRequests = false,
+     message = 'Too many requests, please try again later.',
+     standardHeaders = true,
+     legacyHeaders = false,
+   } = config;
 
   return (req: Request, res: Response, next: NextFunction) => {
     // Generate key based on IP and optionally user ID

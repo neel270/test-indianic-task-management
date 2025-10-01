@@ -26,6 +26,8 @@ export class CreateTaskUseCase {
     description: string;
     status: string;
     dueDate: Date;
+    assignedTo:string,
+    userId: string;
     priority: string;
     tags: string[];
   }> {
@@ -35,8 +37,9 @@ export class CreateTaskUseCase {
         taskData.description,
         new Date(taskData.dueDate),
         userId,
-        taskData.status === 'Completed' ? 'Medium' : 'Medium', // Default priority
-        []
+        taskData.assignedTo,
+        taskData.priority || 'Medium',
+        taskData.tags || []
       );
 
       return {
@@ -45,6 +48,8 @@ export class CreateTaskUseCase {
         description: task.description,
         status: task.status,
         dueDate: task.dueDate,
+        assignedTo: task.assignedTo,
+        userId: task.userId,
         priority: task.priority,
         tags: task.tags
       };

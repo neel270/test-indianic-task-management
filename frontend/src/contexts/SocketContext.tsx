@@ -84,7 +84,7 @@ interface SocketProviderProps {
  * ```
  */
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
-  const [isAuthenticatedSocket, setIsAuthenticatedSocket] = useState(false);
+  const [_isAuthenticatedSocket, setIsAuthenticatedSocket] = useState(false);
 
   const {
     isConnected,
@@ -106,7 +106,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
   // Handle authentication response
   useEffect(() => {
-    socketOn('authenticated', ((data: unknown) => {
+    socketOn('authenticated', (data: unknown) => {
       const authData = data as { success: boolean; message?: string };
       if (authData.success) {
         setIsAuthenticatedSocket(true);
@@ -115,13 +115,13 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         setIsAuthenticatedSocket(false);
         logger.error('Socket authentication failed', { message: authData.message });
       }
-    }));
+    });
 
-    socketOn('authentication_error', ((data: unknown) => {
+    socketOn('authentication_error', (data: unknown) => {
       const errorData = data as { message: string };
       setIsAuthenticatedSocket(false);
       logger.error('Socket authentication error', { message: errorData.message });
-    }));
+    });
 
     return () => {
       socketOff('authenticated');
@@ -165,15 +165,15 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   };
 
   const onUserOnline = (callback: (data: { userId: string; userEmail: string }) => void) => {
-    on('user_online', ((data: unknown) => {
+    on('user_online', (data: unknown) => {
       callback(data as { userId: string; userEmail: string });
-    }));
+    });
   };
 
   const onUserOffline = (callback: (data: { userId: string; userEmail: string }) => void) => {
-    on('user_offline', ((data: unknown) => {
+    on('user_offline', (data: unknown) => {
       callback(data as { userId: string; userEmail: string });
-    }));
+    });
   };
 
   const onNotification = (callback: (notification: unknown) => void) => {
@@ -212,11 +212,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     disconnect,
   };
 
-  return (
-    <SocketContext.Provider value={contextValue}>
-      {children}
-    </SocketContext.Provider>
-  );
+  return <SocketContext.Provider value={contextValue}>{children}</SocketContext.Provider>;
 };
 
 /**
