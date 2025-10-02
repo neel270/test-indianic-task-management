@@ -13,11 +13,6 @@ export class ListUsersUseCase {
     filters?: UserFiltersDto & { page?: number; limit?: number }
   ): Promise<PaginatedUsersResult> {
     try {
-      // Only admins can list all users
-      if (userRole !== 'admin') {
-        throw new Error('Access denied: Admin role required');
-      }
-
       const page = filters?.page ?? 1;
       const limit = filters?.limit ?? 10;
 

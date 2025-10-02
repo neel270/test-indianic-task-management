@@ -68,7 +68,12 @@ export class TaskRepositoryImpl implements ITaskRepository {
         query.dueDate.$lte = filters.endDate;
       }
     }
-
+    if (filters?.search) {
+      query.$or = [
+        { name: { $regex: filters.search, $options: 'i' } },
+        { description: { $regex: filters.search, $options: 'i' } },
+      ];
+    }
     if (filters?.tags && filters.tags.length > 0) {
       query.tags = { $in: filters.tags };
     }

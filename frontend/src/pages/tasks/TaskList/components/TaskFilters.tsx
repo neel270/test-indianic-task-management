@@ -10,12 +10,15 @@ import {
   SelectValue,
 } from '../../../../components/ui/select';
 import { TaskStatus } from '../../../../types/task';
+import { useUsers } from '../../../../hooks/useUserApi';
 
 interface TaskFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   statusFilter: TaskStatus | 'all';
   onStatusFilterChange: (value: TaskStatus | 'all') => void;
+  assignedUserFilter: string;
+  onAssignedUserFilterChange: (value: string) => void;
   viewMode: 'grid' | 'table';
   onViewModeChange: (mode: 'grid' | 'table') => void;
   onExport: () => void;
@@ -28,12 +31,16 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
+  assignedUserFilter,
+  onAssignedUserFilterChange,
   viewMode,
   onViewModeChange,
   onExport,
   onCreateTask,
   isExporting,
 }) => {
+  const { data: usersResponse } = useUsers({limit:100});
+  const users = usersResponse?.data || [];
   return (
     <div className='flex flex-col sm:flex-row gap-4'>
       <div className='flex-1'>
@@ -53,6 +60,21 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
           <SelectItem value='In Progress'>In Progress</SelectItem>
           <SelectItem value='Completed'>Completed</SelectItem>
           <SelectItem value='Cancelled'>Cancelled</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select value={assignedUserFilter} onValueChange={onAssignedUserFilterChange}>
+        <SelectTrigger className='w-[200px]'>
+          <SelectValue placeholder='Filter by assignee' />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value='all'>All Assignees</SelectItem>
+          <SelectItem value='unassigned'>Unassigned</SelectItem>
+          {users.map(user => (
+            <SelectItem key={user.id} value={user.id.toString()}>
+              {user.firstName} {user.lastName}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 

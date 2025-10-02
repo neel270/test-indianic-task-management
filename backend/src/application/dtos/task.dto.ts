@@ -26,6 +26,7 @@ export interface TaskFiltersDto {
   startDate?: string; // ISO date string for validation
   endDate?: string; // ISO date string for validation
   page?: number;
+  search?: string;
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';

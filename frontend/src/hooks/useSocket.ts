@@ -53,10 +53,6 @@ export type SocketEventData = {
   task_reminder: { taskId: string; reminderTime: string; message: string };
   task_reminder_due: { taskId: string; title: string; dueDate: string };
 
-  // User status events
-  user_online: { userId: string; userEmail: string };
-  user_offline: { userId: string; userEmail: string };
-
   // Room events
   join_task_room: string;
   leave_task_room: string;

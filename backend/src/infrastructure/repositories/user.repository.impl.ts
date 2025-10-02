@@ -1,5 +1,5 @@
 import { UserEntity } from '../../domain/entities/user.entity';
-import { IUserRepository } from '../../domain/repositories/user.repository';
+import { IUserRepository, UserFilters } from '../../domain/repositories/user.repository';
 import { Email } from '../../domain/value-objects/email.vo';
 import { UserModelMapper } from '../database/models/user.model';
 import { UserSchema } from '../database/schemas/user.schema';
@@ -30,12 +30,27 @@ export class UserRepositoryImpl implements IUserRepository {
 
   async findAll(
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
+    filters?: UserFilters
   ): Promise<{ users: UserEntity[]; total: number }> {
     const skip = (page - 1) * limit;
+    const query: any = {};
+    if (filters?.role) {
+      query.role = filters.role;
+    }
+    if (filters?.isActive !== undefined) {
+      query.isActive = filters.isActive;
+    }
+    if (filters?.search) {
+      query.$or = [
+        { firstName: { $regex: filters.search, $options: 'i' } },
+        { lastName: { $regex: filters.search, $options: 'i' } },
+        { email: { $regex: filters.search, $options: 'i' } },
+      ];
+    }
     const [models, total] = await Promise.all([
-      this.repository.find().skip(skip).limit(limit).sort({ createdAt: -1 }),
-      this.repository.countDocuments(),
+      this.repository.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      this.repository.countDocuments(query),
     ]);
     return {
       users: models.map(model => UserModelMapper.toDomainFromMongoose(model.toObject())),

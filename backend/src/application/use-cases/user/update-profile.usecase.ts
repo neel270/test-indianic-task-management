@@ -24,6 +24,7 @@ export class UpdateProfileUseCase {
     role: string;
     profileImage?: string;
     updatedAt: Date;
+    createdAt: Date;
   }> {
     try {
       // Validate that at least one field is provided
@@ -56,6 +57,7 @@ export class UpdateProfileUseCase {
         role: updatedUser.role,
         profileImage: updatedUser.profileImage,
         updatedAt: new Date(updatedUser.updatedAt),
+        createdAt: new Date(updatedUser.createdAt),
       };
     } catch (error) {
       throw new Error(

@@ -9,7 +9,7 @@ export type { User } from '@/types/api';
 
 interface UserFilters {
   role?: string;
-  isActive?: boolean;
+  isActive?: boolean | null;
   search?: string;
 }
 
@@ -18,11 +18,15 @@ interface PaginationParams {
   limit?: number;
 }
 
-interface PaginatedResponse<T> {
-  data: T[];
+interface PaginatedResponse {
+  data: User[];
   pagination: {
-    currentPage: number;
+    total: number;
+    page: number;
+    limit: number;
     totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
     totalItems: number;
   };
 }
@@ -31,7 +35,7 @@ interface PaginatedResponse<T> {
 export const useUsers = (params?: PaginationParams & UserFilters) => {
   return useQuery({
     queryKey: ['users', 'list', params],
-    queryFn: async (): Promise<PaginatedResponse<User>> => {
+    queryFn: async (): Promise<PaginatedResponse> => {
       const queryParams: Record<string, string> = {};
 
       if (params?.page) {
@@ -44,14 +48,27 @@ export const useUsers = (params?: PaginationParams & UserFilters) => {
         queryParams.role = params.role;
       }
       if (params?.isActive !== undefined) {
-        queryParams.isActive = params.isActive.toString();
+        queryParams.isActive = params.isActive ? 'true' : 'false';
       }
       if (params?.search) {
         queryParams.search = params.search;
       }
 
-      const response = await apiClient.get<PaginatedResponse<User>>('/users', queryParams);
-      return response.data;
+      const response = await apiClient.get<PaginatedResponse>('/users', { params: queryParams });
+      // The backend returns { data: PaginatedTasksResult }, but we need to extract it
+      const backendResponse = response.data as any;
+      return {
+        data: backendResponse.data.data || [],
+        pagination: backendResponse.data.pagination || {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false,
+          totalItems: 0,
+        },
+      };
     },
     staleTime: 1000 * 60 * 2, // 2 minutes
   });

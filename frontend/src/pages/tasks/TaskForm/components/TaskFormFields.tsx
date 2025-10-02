@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Label } from '../../../../components/ui/label';
 import { Input } from '../../../../components/ui/input';
 import {
@@ -11,17 +11,19 @@ import {
 import { Textarea } from '../../../../components/ui/textarea';
 import { TagInput } from '../../../../components/ui/tag-input';
 import { AttachmentUpload } from '../../../../components/ui/attachment-upload';
+import { useUsers } from '../../../../hooks/useUserApi';
 
 interface TaskFormFieldsProps {
   formik: any;
   isLoading: boolean;
 }
 
-export const TaskFormFields: React.FC<TaskFormFieldsProps> = ({
-  formik,
-  isLoading,
-}) => {
-  console.log('TaskFormFields - formik values:', formik.values);
+export const TaskFormFields: React.FC<TaskFormFieldsProps> = ({ formik, isLoading }) => {
+  const { data: usersResponse } = useUsers({ limit: 100 });
+  console.log(usersResponse, '----usersResponse--------');
+  const users = useMemo(() => usersResponse?.data || [], [usersResponse]);
+
+  console.log('TaskFormFields - formik values:', formik.values, users);
   return (
     <>
       {/* Title */}
@@ -104,6 +106,27 @@ export const TaskFormFields: React.FC<TaskFormFieldsProps> = ({
         </div>
       </div>
 
+      {/* Assigned To */}
+      <div className='space-y-2'>
+        <Label htmlFor='assignedTo'>Assigned To</Label>
+        <Select
+          value={formik.values.assignedTo}
+          onValueChange={value => void formik.setFieldValue('assignedTo', value)}
+          disabled={isLoading}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder='Select user to assign task' />
+          </SelectTrigger>
+          <SelectContent>
+            {users.map(user => (
+              <SelectItem key={user.id} value={user.id.toString()}>
+                {user.firstName} {user.lastName} ({user.email})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Due Date */}
       <div className='space-y-2'>
         <Label htmlFor='dueDate'>Due Date *</Label>
@@ -123,7 +146,7 @@ export const TaskFormFields: React.FC<TaskFormFieldsProps> = ({
         <Label htmlFor='tags'>Tags</Label>
         <TagInput
           value={formik.values.tags || []}
-          onChange={(tags) => formik.setFieldValue('tags', tags)}
+          onChange={tags => formik.setFieldValue('tags', tags)}
           placeholder='Add tags to categorize this task...'
           disabled={isLoading}
         />
@@ -134,7 +157,7 @@ export const TaskFormFields: React.FC<TaskFormFieldsProps> = ({
         <Label htmlFor='attachments'>Attachments</Label>
         <AttachmentUpload
           value={formik.values.attachments || []}
-          onChange={(files) => formik.setFieldValue('attachments', files)}
+          onChange={files => formik.setFieldValue('attachments', files)}
           disabled={isLoading}
           maxFiles={5}
           maxSize={10}

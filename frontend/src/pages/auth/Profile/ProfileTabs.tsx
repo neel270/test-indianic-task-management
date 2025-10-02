@@ -1,35 +1,27 @@
 import React, { useState } from 'react';
 import { useFormik } from 'formik';
-import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { selectUser, selectIsAuthenticated } from '@/store/slices/authSlice';
+import { selectUser } from '@/store/slices/authSlice';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Camera, User, Mail, Calendar, Shield, Upload, Eye, EyeOff, Lock, Loader2, Save, Settings, Key } from 'lucide-react';
-import { format } from 'date-fns';
-import { toastSuccess, toastError } from '@/hooks/use-toast';
+import { Camera, User, Upload, Eye, EyeOff, Lock, Loader2, Save, Settings } from 'lucide-react';
+import { toastError } from '@/hooks/use-toast';
 import { updateProfileSuccess } from '@/store/slices/authSlice';
-import { useToast } from '@/hooks/use-toast';
 import { useUpdateProfile, useChangePassword, useUploadProfileImage } from '@/hooks/useAuthApi';
 import { logger } from '@/lib/logger';
 import * as Yup from 'yup';
 
 const ProfileTabs = () => {
-  const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { toast } = useToast();
 
   const user = useAppSelector(selectUser);
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
   // Profile editing state
   const [isEditing, setIsEditing] = useState(false);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const updateProfileMutation = useUpdateProfile();
   const uploadProfileImageMutation = useUploadProfileImage();
 
@@ -42,13 +34,6 @@ const ProfileTabs = () => {
   // Profile image upload state (for main profile view)
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-    }
-  }, [isAuthenticated, navigate]);
-
   // Profile editing formik
   const profileFormik = useFormik({
     initialValues: {
@@ -71,16 +56,12 @@ const ProfileTabs = () => {
         const result = await updateProfileMutation.mutateAsync(values);
         setIsEditing(false);
         profileFormik.resetForm();
-
-        // Update Redux state with the new user data
-        if (result?.user) {
-          dispatch(updateProfileSuccess(result.user));
-        }
-
         logger.info('Profile update completed', { userId: user?.id });
       } catch (error) {
         // Error handling is done in the mutation
-        logger.error('Profile update failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+        logger.error('Profile update failed', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     },
   });
@@ -119,7 +100,7 @@ const ProfileTabs = () => {
       } catch (error) {
         // Error handling is done in the mutation
         logger.error('Password change failed', {
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     },
@@ -163,10 +144,12 @@ const ProfileTabs = () => {
 
       if (result.success && result.data?.imageUrl) {
         // Update Redux store with new profile image
-        dispatch(updateProfileSuccess({
-          ...user,
-          profileImage: result.data.imageUrl
-        }));
+        dispatch(
+          updateProfileSuccess({
+            ...user,
+            profileImage: result.data.imageUrl,
+          })
+        );
 
         // Clear selection
         setSelectedFile(null);
@@ -175,7 +158,7 @@ const ProfileTabs = () => {
     } catch (error) {
       // Error handling is done in the mutation
       logger.error('Profile image upload failed', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   };
@@ -184,97 +167,6 @@ const ProfileTabs = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
   };
-
-  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingAvatar(true);
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please select an image file.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: 'File too large',
-        description: 'Image size must be less than 5MB.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append('profileImage', file);
-
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/auth/upload-profile-image', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
-        throw new Error(errorData.message ?? 'Upload failed');
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: 'Avatar uploaded',
-          description: 'Profile image updated successfully!',
-        });
-
-        // Update Redux store with new profile image
-        if (user && result.data?.imageUrl) {
-          dispatch(updateProfileSuccess({
-            ...user,
-            profileImage: result.data.imageUrl
-          }));
-
-          // Force refresh the avatar by updating the src
-          const avatarImg = document.querySelector(`img[alt="${user.firstName} ${user.lastName}"]`) as HTMLImageElement;
-          if (avatarImg) {
-            avatarImg.src = `${result.data.imageUrl}?t=${Date.now()}`;
-          }
-        }
-
-        logger.info('Avatar upload completed', {
-          fileName: file.name,
-          fileSize: file.size,
-          imageUrl: result.data?.imageUrl
-        });
-      } else {
-        throw new Error(result.message ?? 'Upload failed');
-      }
-    } catch (error) {
-      logger.error('Avatar upload failed', { error: error instanceof Error ? error.message : 'Unknown error' });
-      toast({
-        title: 'Upload failed',
-        description: error instanceof Error ? error.message : 'Failed to upload avatar.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsUploadingAvatar(false);
-    }
-  };
-
-  if (!isAuthenticated || !user) {
-    return null;
-  }
-
   return (
     <div className='min-h-screen bg-gray-50 p-6'>
       <div className='max-w-6xl mx-auto space-y-6'>
@@ -302,12 +194,13 @@ const ProfileTabs = () => {
                   <AvatarImage
                     src={
                       previewUrl ??
-                      (user.profileImage ? `${user.profileImage}?t=${Date.now()}` : undefined)
+                      (user?.profileImage ? `${user?.profileImage}?t=${Date.now()}` : undefined)
                     }
-                    alt={`${user.firstName} ${user.lastName}`}
+                    alt={`${user?.firstName} ${user?.lastName}`}
                   />
                   <AvatarFallback className='text-2xl'>
-                    {user.firstName?.[0]}{user.lastName?.[0]}
+                    {user?.firstName?.[0]}
+                    {user?.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -415,12 +308,17 @@ const ProfileTabs = () => {
                                 onBlur={profileFormik.handleBlur}
                                 disabled={!isEditing}
                                 className={
-                                  profileFormik.touched.firstName && profileFormik.errors.firstName ? 'border-red-500' : ''
+                                  profileFormik.touched.firstName && profileFormik.errors.firstName
+                                    ? 'border-red-500'
+                                    : ''
                                 }
                               />
-                              {profileFormik.touched.firstName && profileFormik.errors.firstName && (
-                                <p className='text-sm text-red-500'>{profileFormik.errors.firstName}</p>
-                              )}
+                              {profileFormik.touched.firstName &&
+                                profileFormik.errors.firstName && (
+                                  <p className='text-sm text-red-500'>
+                                    {profileFormik.errors.firstName}
+                                  </p>
+                                )}
                             </div>
 
                             <div className='space-y-2'>
@@ -433,11 +331,15 @@ const ProfileTabs = () => {
                                 onBlur={profileFormik.handleBlur}
                                 disabled={!isEditing}
                                 className={
-                                  profileFormik.touched.lastName && profileFormik.errors.lastName ? 'border-red-500' : ''
+                                  profileFormik.touched.lastName && profileFormik.errors.lastName
+                                    ? 'border-red-500'
+                                    : ''
                                 }
                               />
                               {profileFormik.touched.lastName && profileFormik.errors.lastName && (
-                                <p className='text-sm text-red-500'>{profileFormik.errors.lastName}</p>
+                                <p className='text-sm text-red-500'>
+                                  {profileFormik.errors.lastName}
+                                </p>
                               )}
                             </div>
                           </div>
@@ -452,7 +354,11 @@ const ProfileTabs = () => {
                               onChange={profileFormik.handleChange}
                               onBlur={profileFormik.handleBlur}
                               disabled={!isEditing}
-                              className={profileFormik.touched.email && profileFormik.errors.email ? 'border-red-500' : ''}
+                              className={
+                                profileFormik.touched.email && profileFormik.errors.email
+                                  ? 'border-red-500'
+                                  : ''
+                              }
                             />
                             {profileFormik.touched.email && profileFormik.errors.email && (
                               <p className='text-sm text-red-500'>{profileFormik.errors.email}</p>
@@ -518,7 +424,8 @@ const ProfileTabs = () => {
                               onChange={passwordFormik.handleChange}
                               onBlur={passwordFormik.handleBlur}
                               className={
-                                passwordFormik.touched.currentPassword && passwordFormik.errors.currentPassword
+                                passwordFormik.touched.currentPassword &&
+                                passwordFormik.errors.currentPassword
                                   ? 'border-red-500 pr-10'
                                   : 'pr-10'
                               }
@@ -536,9 +443,12 @@ const ProfileTabs = () => {
                               )}
                             </button>
                           </div>
-                          {passwordFormik.touched.currentPassword && passwordFormik.errors.currentPassword && (
-                            <p className='text-sm text-red-500'>{passwordFormik.errors.currentPassword}</p>
-                          )}
+                          {passwordFormik.touched.currentPassword &&
+                            passwordFormik.errors.currentPassword && (
+                              <p className='text-sm text-red-500'>
+                                {passwordFormik.errors.currentPassword}
+                              </p>
+                            )}
                         </div>
 
                         {/* New Password */}
@@ -553,7 +463,8 @@ const ProfileTabs = () => {
                               onChange={passwordFormik.handleChange}
                               onBlur={passwordFormik.handleBlur}
                               className={
-                                passwordFormik.touched.newPassword && passwordFormik.errors.newPassword
+                                passwordFormik.touched.newPassword &&
+                                passwordFormik.errors.newPassword
                                   ? 'border-red-500 pr-10'
                                   : 'pr-10'
                               }
@@ -571,9 +482,12 @@ const ProfileTabs = () => {
                               )}
                             </button>
                           </div>
-                          {passwordFormik.touched.newPassword && passwordFormik.errors.newPassword && (
-                            <p className='text-sm text-red-500'>{passwordFormik.errors.newPassword}</p>
-                          )}
+                          {passwordFormik.touched.newPassword &&
+                            passwordFormik.errors.newPassword && (
+                              <p className='text-sm text-red-500'>
+                                {passwordFormik.errors.newPassword}
+                              </p>
+                            )}
                         </div>
 
                         {/* Confirm New Password */}
@@ -588,7 +502,8 @@ const ProfileTabs = () => {
                               onChange={passwordFormik.handleChange}
                               onBlur={passwordFormik.handleBlur}
                               className={
-                                passwordFormik.touched.confirmPassword && passwordFormik.errors.confirmPassword
+                                passwordFormik.touched.confirmPassword &&
+                                passwordFormik.errors.confirmPassword
                                   ? 'border-red-500 pr-10'
                                   : 'pr-10'
                               }
@@ -606,9 +521,12 @@ const ProfileTabs = () => {
                               )}
                             </button>
                           </div>
-                          {passwordFormik.touched.confirmPassword && passwordFormik.errors.confirmPassword && (
-                            <p className='text-sm text-red-500'>{passwordFormik.errors.confirmPassword}</p>
-                          )}
+                          {passwordFormik.touched.confirmPassword &&
+                            passwordFormik.errors.confirmPassword && (
+                              <p className='text-sm text-red-500'>
+                                {passwordFormik.errors.confirmPassword}
+                              </p>
+                            )}
                         </div>
 
                         {/* Password Requirements */}

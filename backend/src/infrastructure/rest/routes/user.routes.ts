@@ -14,20 +14,18 @@ export const createUserRoutes = (): Router => {
 
   // Initialize controller with dependencies
   const userController = new UserController();
-
-  // Admin-only routes for user management (simplified)
-  router.get(
-    '/users',
-    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
-    authMiddleware.adminOnly,
-    (req, res, next) => void userController.listUsers(req, res).catch(next)
-  );
-
   router.put(
-    '/users/:id/status',
+    '/:id/status',
     (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
     authMiddleware.adminOnly,
     (req, res, next) => void userController.toggleUserStatus(req, res).catch(next)
+  );
+  // Admin-only routes for user management (simplified)
+  router.get(
+    '/',
+    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
+    authMiddleware.adminOnly,
+    (req, res, next) => void userController.listUsers(req, res).catch(next)
   );
 
   return router;

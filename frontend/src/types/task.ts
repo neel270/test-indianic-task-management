@@ -26,6 +26,7 @@ export interface CreateTaskRequest {
   assignedTo?: string;
   dueDate?: string;
   tags?: string[];
+  attachments?: string[];
 }
 
 export interface UpdateTaskRequest {
@@ -36,6 +37,7 @@ export interface UpdateTaskRequest {
   assignedTo?: string;
   dueDate?: string;
   tags?: string[];
+  attachments?: string[];
 }
 
 export interface TaskListResponse {

@@ -20,7 +20,10 @@ export class ImageService {
   /**
    * Resize profile image to 200x200 pixels
    */
-  async resizeProfileImage(filePath: string, userId: string): Promise<string> {
+  async resizeProfileImage(
+    filePath: string,
+    userId: string
+  ): Promise<{ outputPath: string; fileName: string }> {
     try {
       const options: ImageResizeOptions = {
         width: 200,
@@ -56,7 +59,7 @@ export class ImageService {
         fs.unlinkSync(filePath);
       }
 
-      return outputPath;
+      return { outputPath, fileName };
     } catch (error) {
       console.error('Error resizing profile image:', error);
       throw new Error(

@@ -94,21 +94,15 @@ export class AuthService {
 
     // Find user by email
     const user = await this.userRepository.findByEmail(emailVo);
-    console.log('Login attempt for email:', email);
-    console.log('User found:', user ? user.email : 'No user found');
-    console.log('User password hash:', user);
     if (!user) {
       throw new Error(this.ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
-    console.log('User is active:', user.isActive);
-
     // Check if user is active
     if (!user.isActive) {
       throw new Error(this.ERROR_MESSAGES.ACCOUNT_DEACTIVATED);
     }
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log('Password valid:', isPasswordValid);
     if (!isPasswordValid) {
       throw new Error(this.ERROR_MESSAGES.INVALID_CREDENTIALS);
     }

@@ -12,12 +12,9 @@ export const useDashboardStats = () => {
     queryKey: ['dashboard', 'stats'],
     queryFn: async (): Promise<DashboardStats> => {
       try {
-        console.log('Fetching dashboard stats...');
         const response = await apiClient.get<{ success: boolean; message: string; data: DashboardStats }>(
           '/tasks/stats'
         );
-        console.log('Dashboard stats response:', response);
-
         if (!response.data.success) {
           throw new Error(response.data.message || 'Failed to fetch dashboard stats');
         }
@@ -146,9 +143,7 @@ export const useDashboardData = () => {
     if (!isAuthenticated || !isConnected) return;
 
     // Handle real-time task creation
-    const handleTaskCreated = (taskData: any) => {
-      console.log('Real-time task created:', taskData);
-
+    const handleTaskCreated = () => {
       // Invalidate and refetch dashboard data
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
 
@@ -157,9 +152,7 @@ export const useDashboardData = () => {
     };
 
     // Handle real-time task updates
-    const handleTaskUpdated = (taskData: any) => {
-      console.log('Real-time task updated:', taskData);
-
+    const handleTaskUpdated = () => {
       // Invalidate and refetch dashboard data
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
 

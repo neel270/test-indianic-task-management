@@ -1,6 +1,9 @@
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { useSocket } from '../hooks/useSocket';
 import { logger } from '../lib/logger';
+import { useAppSelector } from '@/store/hooks';
+import { selectAuthToken } from '@/store/slices/authSlice';
+import { TaskStatus } from '../types/task';
 
 /**
  * Socket context interface for global socket state management
@@ -24,12 +27,10 @@ interface SocketContextType {
   onTaskCreated: (callback: (task: unknown) => void) => void;
   onTaskUpdated: (callback: (task: unknown) => void) => void;
   onTaskDeleted: (callback: (task: unknown) => void) => void;
-  onTaskStatusChanged: (callback: (data: { id: string; status: string; title?: string }) => void) => void;
+  onTaskStatusChanged: (
+    callback: (data: { id: string; status: TaskStatus; title?: string }) => void
+  ) => void;
   onTaskAssigned: (callback: (data: unknown) => void) => void;
-
-  // User status events
-  onUserOnline: (callback: (data: { userId: string; userEmail: string }) => void) => void;
-  onUserOffline: (callback: (data: { userId: string; userEmail: string }) => void) => void;
 
   // Notification events
   onNotification: (callback: (notification: unknown) => void) => void;
@@ -86,7 +87,7 @@ interface SocketProviderProps {
  */
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [_isAuthenticatedSocket, setIsAuthenticatedSocket] = useState(false);
-
+  const token = useAppSelector(selectAuthToken);
   const {
     isConnected,
     isConnecting,
@@ -108,10 +109,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   // Auto-authenticate socket when connected and token is available
   useEffect(() => {
     if (isConnected && !_isAuthenticatedSocket) {
-      const token = localStorage.getItem('token');
-      if (token) {
-        emit('authenticate', token);
-      }
+      emit('authenticate', token);
     }
   }, [isConnected, _isAuthenticatedSocket, emit]);
 
@@ -171,26 +169,16 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     on('task_deleted', callback);
   };
 
-  const onTaskStatusChanged = (callback: (data: { id: string; status: string; title?: string }) => void) => {
+  const onTaskStatusChanged = (
+    callback: (data: { id: string; status: TaskStatus; title?: string }) => void
+  ) => {
     on('task_status_changed', (data: unknown) => {
-      callback(data as { id: string; status: string; title?: string });
+      callback(data as { id: string; status: TaskStatus; title?: string });
     });
   };
 
   const onTaskAssigned = (callback: (data: unknown) => void) => {
     on('task_assigned', callback);
-  };
-
-  const onUserOnline = (callback: (data: { userId: string; userEmail: string }) => void) => {
-    on('user_online', (data: unknown) => {
-      callback(data as { userId: string; userEmail: string });
-    });
-  };
-
-  const onUserOffline = (callback: (data: { userId: string; userEmail: string }) => void) => {
-    on('user_offline', (data: unknown) => {
-      callback(data as { userId: string; userEmail: string });
-    });
   };
 
   const onNotification = (callback: (notification: unknown) => void) => {
@@ -223,8 +211,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     onTaskDeleted,
     onTaskStatusChanged,
     onTaskAssigned,
-    onUserOnline,
-    onUserOffline,
     onNotification,
     reconnect,
     disconnect,

@@ -26,7 +26,7 @@ export class UpdateTaskUseCase {
   ): Promise<TaskEntity> {
     try {
       // Get the existing task first
-      const existingTask = await this.taskService.getTaskById(taskId, userId);
+      const existingTask = await this.taskService.getTaskById(taskId);
       if (!existingTask) {
         throw new Error('Task not found');
       }
@@ -86,7 +86,7 @@ export class UpdateTaskUseCase {
         updatePayload.attachments = finalAttachments;
       }
 
-      const task = await this.taskService.updateTask(taskId, updatePayload, userId);
+      const task = await this.taskService.updateTask(taskId, updatePayload);
 
       // Send notifications for task updates
       try {

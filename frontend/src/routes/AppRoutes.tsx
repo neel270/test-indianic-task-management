@@ -36,6 +36,7 @@ const NotFound = lazy(() => import('../pages/NotFound'));
 // Protected Route wrapper
 const ProtectedRoute = lazy(() => import('./ProtectedRoute'));
 
+const UserList = lazy(() => import('../pages/users/UserList'));
 const AppRoutes: React.FC = () => {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -67,14 +68,21 @@ const AppRoutes: React.FC = () => {
           {/* Task Management */}
           <Route path='/tasks' element={<TaskList />} />
           <Route path='/tasks/new' element={<TaskForm />} />
-          <Route path='/tasks/:id' element={ <Suspense fallback={<PageLoader />}><TaskDetail /></Suspense>} />
+          <Route
+            path='/tasks/:id'
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <TaskDetail />
+              </Suspense>
+            }
+          />
           <Route path='/tasks/:id/edit' element={<TaskForm />} />
-
 
           {/* Profile */}
           <Route path='/profile' element={<Profile />} />
           <Route path='/auth/change-password' element={<ChangePassword />} />
           <Route path='/settings' element={<div>Settings Page</div>} />
+          <Route path='/users' element={<UserList />} />
         </Route>
 
         {/* 404 Not Found */}

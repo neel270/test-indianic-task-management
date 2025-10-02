@@ -8,34 +8,27 @@ export class ListTasksUseCase {
     this.taskService = new TaskService();
   }
 
-  async execute(
-    userId: string,
-    userRole: string,
-    filters?: TaskFiltersDto
-  ): Promise<PaginatedTasksResult> {
+  async execute(filters?: TaskFiltersDto): Promise<PaginatedTasksResult> {
     try {
       const page = filters?.page ?? 1;
       const limit = filters?.limit ?? 10;
 
-      if (userRole === 'admin') {
-        // Admins can see all tasks with filters
-        const taskFilters: Record<string, unknown> = {};
+      // Admins can see all tasks with filters
+      const taskFilters: Record<string, unknown> = {};
 
-        if (filters?.status) {
-          taskFilters.status = filters.status;
-        }
-        if (filters?.startDate) {
-          taskFilters.startDate = new Date(filters.startDate);
-        }
-        if (filters?.endDate) {
-          taskFilters.endDate = new Date(filters.endDate);
-        }
-
-        return await this.taskService.getAllTasks(page, limit, taskFilters, userRole);
-      } else {
-        // Regular users can only see their own tasks
-        return await this.taskService.getUserTasks(userId, page, limit, filters?.status);
+      if (filters?.status) {
+        taskFilters.status = filters.status;
       }
+      if (filters?.startDate) {
+        taskFilters.startDate = new Date(filters.startDate);
+      }
+      if (filters?.endDate) {
+        taskFilters.endDate = new Date(filters.endDate);
+      }
+      if (filters?.search) {
+        taskFilters.search = filters.search;
+      }
+      return await this.taskService.getAllTasks(page, limit, taskFilters);
     } catch (error) {
       throw new Error(
         `Task listing failed: ${error instanceof Error ? error.message : 'Unknown error'}`

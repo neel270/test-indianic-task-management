@@ -79,7 +79,6 @@ export const useLogin = () => {
       dispatch(loginStart());
     },
     onSuccess: data => {
-      // Store token in localStorage
       setAuthToken(data.data.tokens.accessToken);
 
       // Update Redux state
@@ -135,13 +134,6 @@ export const useLogout = () => {
     },
     onSettled: () => {
       // Clear all persisted Redux data (redux-persist)
-      localStorage.removeItem('task-management-front');
-
-      // Clear all auth-related localStorage items consistently
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('authToken'); // Keep for backward compatibility
-      localStorage.removeItem('user');
       setAuthToken('');
 
       // Update Redux state
@@ -254,14 +246,11 @@ export const useUpdateProfile = () => {
     },
     onSuccess: data => {
       // Update Redux state
-      dispatch(updateProfileSuccess(data.user));
-
-      // Update localStorage
-      localStorage.setItem('user', JSON.stringify(data.user));
+      dispatch(updateProfileSuccess(data.data));
 
       // Update React Query cache
-      queryClient.setQueryData(['auth', 'profile'], data.user);
-      queryClient.setQueryData(['auth', 'user'], data.user);
+      queryClient.setQueryData(['auth', 'profile'], data.data);
+      queryClient.setQueryData(['auth', 'user'], data.data);
 
       toastSuccess('Profile updated successfully!');
     },

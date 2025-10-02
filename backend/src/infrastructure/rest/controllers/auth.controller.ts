@@ -612,12 +612,7 @@ export class AuthController {
       try {
         const result = await this.uploadProfileImageUseCase.execute({
           userId,
-          file: {
-            path: file.path,
-            originalname: file.originalname,
-            mimetype: file.mimetype,
-            size: file.size,
-          },
+          file,
         });
 
         ResponseUtil.success(res, result, 'Profile image uploaded and processed successfully');

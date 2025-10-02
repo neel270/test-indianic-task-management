@@ -174,8 +174,7 @@ export class TaskController {
    */
   getTasks = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
     const userId = req.user?.id;
-    const userRole = req.user?.role ?? 'user';
-    const { page, limit, status, startDate, endDate, sortBy, sortOrder } = req.query;
+    const { page, limit, status, startDate, endDate, sortBy, sortOrder, search } = req.query;
 
     if (!userId) {
       res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
@@ -193,9 +192,10 @@ export class TaskController {
       endDate: endDate as string | undefined,
       sortBy: sortBy as string | undefined,
       sortOrder: sortOrder as 'asc' | 'desc' | undefined,
+      search: search as string | undefined,
     };
 
-    const result = await this.listTasksUseCase.execute(userId, userRole, filters);
+    const result = await this.listTasksUseCase.execute(filters);
 
     ResponseUtil.success(res, result, 'Tasks retrieved successfully');
   });
@@ -222,16 +222,9 @@ export class TaskController {
    */
   getTaskById = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const userId = req.user?.id;
-
-    if (!userId) {
-      ResponseUtil.unauthorized(res, 'User not authenticated');
-      return;
-    }
 
     const result = await this.getTaskByIdUseCase.execute({
       id,
-      userId,
     });
 
     ResponseUtil.success(res, result, 'Task retrieved successfully');
@@ -629,7 +622,6 @@ export class TaskController {
   exportTasksToCSV = errorMiddleware.catchAsync(
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.user?.id;
-      const userRole = req.user?.role ?? 'user';
       const { status, startDate, endDate } = req.query;
 
       if (!userId) {
@@ -650,7 +642,7 @@ export class TaskController {
           limit: APP_CONSTANTS.CSV_EXPORT.MAX_LIMIT, // Large limit to get all tasks for export
         };
 
-        const result = await this.listTasksUseCase.execute(userId, userRole, filters);
+        const result = await this.listTasksUseCase.execute(filters);
 
         if (!result.tasks || result.tasks.length === 0) {
           ResponseUtil.notFound(res, 'No tasks found to export');

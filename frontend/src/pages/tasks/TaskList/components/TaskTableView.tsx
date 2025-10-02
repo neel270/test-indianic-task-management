@@ -27,7 +27,9 @@ import {
   TableHeader,
   TableRow,
 } from '../../../../components/ui/table';
+import { UserAvatar } from '../../../../components/ui/user-avatar';
 import { Task } from '../../../../types/task';
+import { useUsers } from '../../../../hooks/useUserApi';
 
 interface TaskTableViewProps {
   tasks: Task[];
@@ -44,15 +46,17 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
   onStatusToggle,
   onDelete,
 }) => {
+  const { data: usersResponse } = useUsers({limit: 100});
+  const users = usersResponse?.data || [];
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'completed':
+      case 'Completed':
         return 'default';
-      case 'pending':
+      case 'Pending':
         return 'outline';
-      case 'in_progress':
+      case 'In Progress':
         return 'secondary';
-      case 'cancelled':
+      case 'Cancelled':
         return 'destructive';
       default:
         return 'outline';
@@ -61,13 +65,13 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed':
+      case 'Completed':
         return <CheckCircle2 className='h-3 w-3 mr-1' />;
-      case 'pending':
+      case 'Pending':
         return <CircleDot className='h-3 w-3 mr-1' />;
-      case 'in_progress':
+      case 'In Progress':
         return <Clock className='h-3 w-3 mr-1' />;
-      case 'cancelled':
+      case 'Cancelled':
         return <FileText className='h-3 w-3 mr-1' />;
       default:
         return <CircleDot className='h-3 w-3 mr-1' />;
@@ -115,7 +119,7 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                 <div className='flex items-center'>
                   <Calendar className='h-4 w-4 mr-1' />
                   <span>{format(new Date(task.dueDate), 'MMM d, yyyy')}</span>
-                  {isOverdue(task.dueDate) && task.status !== 'completed' && task.status !== 'cancelled' && (
+                  {isOverdue(task.dueDate) && task.status !== 'Completed' && task.status !== 'Cancelled' && (
                     <Badge variant='destructive' className='ml-2 text-xs'>
                       Overdue
                     </Badge>
@@ -132,7 +136,18 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
               </div>
             </TableCell>
             <TableCell>
-              <span className='text-sm'>Unassigned</span>
+              {task.assignedTo ? (
+                (() => {
+                  const assignedUser = users.find(user => user.id.toString() === task.assignedTo);
+                  return assignedUser ? (
+                    <UserAvatar user={assignedUser} size='sm' showName />
+                  ) : (
+                    <span className='text-sm text-gray-400'>Unknown User</span>
+                  );
+                })()
+              ) : (
+                <span className='text-sm text-gray-400 italic'>Unassigned</span>
+              )}
             </TableCell>
             <TableCell>
               <DropdownMenu>
@@ -156,9 +171,9 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                   )}
                   <DropdownMenuItem
                     onClick={() => onStatusToggle(task)}
-                    className={task.status === 'completed' ? 'text-orange-600' : 'text-green-600'}
+                    className={task.status === 'Completed' ? 'text-orange-600' : 'text-green-600'}
                   >
-                    Mark as {task.status === 'completed' ? 'Pending' : 'Completed'}
+                    Mark as {task.status === 'Completed' ? 'Pending' : 'Completed'}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => onDelete(task.id, task.title)}

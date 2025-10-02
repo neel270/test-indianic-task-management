@@ -11,7 +11,11 @@ export interface IUserRepository {
   save(user: UserEntity): Promise<UserEntity>;
   findById(id: string): Promise<UserEntity | null>;
   findByEmail(email: Email): Promise<UserEntity | null>;
-  findAll(page?: number, limit?: number): Promise<{ users: UserEntity[]; total: number }>;
+  findAll(
+    page?: number,
+    limit?: number,
+    filters?: UserFilters
+  ): Promise<{ users: UserEntity[]; total: number }>;
   findByRole(role: 'admin' | 'user'): Promise<UserEntity[]>;
   update(id: string, user: Partial<UserEntity>): Promise<UserEntity>;
   updateProfileImage(id: string, profileImage: string): Promise<UserEntity>;

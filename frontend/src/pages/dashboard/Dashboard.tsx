@@ -28,6 +28,7 @@ import { selectUser } from '@/store/slices/authSlice';
 import { useDashboardData } from '../../hooks/useDashboardApi';
 import { useSocketContext } from '../../contexts/SocketContext';
 import { toast } from '../../hooks/use-toast';
+import { TaskStatus } from '../../types/task';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -63,7 +64,7 @@ const Dashboard: React.FC = () => {
     };
 
     // Handle real-time task status change notifications
-    const handleTaskStatusChanged = (taskData: { id: string; status: string; title?: string }) => {
+    const handleTaskStatusChanged = (taskData: { id: string; status: TaskStatus; title?: string }) => {
       const taskTitle = taskData.title || `Task ${taskData.id}`;
 
       switch (taskData.status) {

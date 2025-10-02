@@ -26,9 +26,11 @@ import {
   DropdownMenuTrigger,
 } from '../../../../components/ui/dropdown-menu';
 import { Button } from '../../../../components/ui/button';
+import { UserAvatar } from '../../../../components/ui/user-avatar';
 import { Task } from '../../../../types/task';
 import { getFileTypeInfo } from '@/lib/fileUtils';
 import { AttachmentPreviewModal } from '@/components/ui';
+import { useUsers } from '../../../../hooks/useUserApi';
 
 interface TaskCardProps {
   task: Task;
@@ -46,6 +48,13 @@ export const TaskCardComponent: React.FC<TaskCardProps> = ({
   onDelete,
 }) => {
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
+  const { data: usersResponse } = useUsers({ limit: 100 });
+  const users = usersResponse?.data || [];
+
+  // Find the assigned user
+  const assignedUser = task.assignedTo
+    ? users.find(user => user.id.toString() === task.assignedTo)
+    : null;
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'Completed':
@@ -189,6 +198,18 @@ export const TaskCardComponent: React.FC<TaskCardProps> = ({
                   Overdue
                 </Badge>
               )}
+          </div>
+        )}
+
+        {assignedUser && (
+          <div className='flex items-center text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg'>
+            <UserAvatar user={assignedUser} size='sm' className='mr-3' />
+            <div className='flex-1'>
+              <span className='font-medium'>Assigned to:</span>
+              <p className='text-xs text-gray-600 mt-0.5'>
+                {assignedUser.firstName} {assignedUser.lastName}
+              </p>
+            </div>
           </div>
         )}
 

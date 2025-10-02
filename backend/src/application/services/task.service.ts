@@ -104,20 +104,11 @@ export class TaskService {
     return await this.taskRepository.save(task);
   }
 
-  async getTaskById(taskId: string, userId?: string): Promise<TaskEntity> {
+  async getTaskById(taskId: string): Promise<TaskEntity> {
     const task = await this.taskRepository.findById(taskId);
     if (!task) {
       throw new Error('Task not found');
     }
-
-    // If userId is provided, ensure the task belongs to the user (unless user is admin)
-    if (userId && task.userId !== userId) {
-      const user = await this.userRepository.findById(userId);
-      if (user?.role !== 'admin') {
-        throw new Error('Access denied');
-      }
-    }
-
     return task;
   }
 
@@ -166,14 +157,8 @@ export class TaskService {
   async getAllTasks(
     page: number = 1,
     limit: number = 10,
-    filters?: TaskFilters,
-    userRole?: string
+    filters?: TaskFilters
   ): Promise<PaginatedTasksResult> {
-    // Only admins can view all tasks, regular users can only view their own
-    if (userRole !== 'admin') {
-      throw new Error('Access denied');
-    }
-
     const result = await this.taskRepository.findAll(page, limit, filters);
     const totalPages = Math.ceil(result.total / limit);
 
@@ -201,20 +186,11 @@ export class TaskService {
       priority?: 'Low' | 'Medium' | 'High';
       tags?: string[];
       attachments?: string[];
-    },
-    userId?: string
+    }
   ): Promise<TaskEntity> {
     const existingTask = await this.taskRepository.findById(taskId);
     if (!existingTask) {
       throw new Error('Task not found');
-    }
-
-    // If userId is provided, ensure the task belongs to the user (unless user is admin)
-    if (userId && existingTask.userId !== userId) {
-      const user = await this.userRepository.findById(userId);
-      if (user?.role !== 'admin') {
-        throw new Error('Access denied');
-      }
     }
 
     // Handle status change to completed
@@ -242,61 +218,29 @@ export class TaskService {
     return await this.taskRepository.update(taskId, updatedTask);
   }
 
-  async deleteTask(taskId: string, userId?: string): Promise<boolean> {
+  async deleteTask(taskId: string): Promise<boolean> {
     const existingTask = await this.taskRepository.findById(taskId);
     if (!existingTask) {
       throw new Error('Task not found');
-    }
-
-    // If userId is provided, ensure the task belongs to the user (unless user is admin)
-    if (userId && existingTask.userId !== userId) {
-      const user = await this.userRepository.findById(userId);
-      if (user?.role !== 'admin') {
-        throw new Error('Access denied');
-      }
     }
 
     return await this.taskRepository.delete(taskId);
   }
 
-  async addTaskAttachment(
-    taskId: string,
-    attachmentUrl: string,
-    userId?: string
-  ): Promise<TaskEntity> {
+  async addTaskAttachment(taskId: string, attachmentUrl: string): Promise<TaskEntity> {
     const existingTask = await this.taskRepository.findById(taskId);
     if (!existingTask) {
       throw new Error('Task not found');
-    }
-
-    // If userId is provided, ensure the task belongs to the user (unless user is admin)
-    if (userId && existingTask.userId !== userId) {
-      const user = await this.userRepository.findById(userId);
-      if (user?.role !== 'admin') {
-        throw new Error('Access denied');
-      }
     }
 
     const updatedTask = existingTask.addAttachment(attachmentUrl);
     return await this.taskRepository.update(taskId, updatedTask);
   }
 
-  async removeTaskAttachment(
-    taskId: string,
-    attachmentUrl: string,
-    userId?: string
-  ): Promise<TaskEntity> {
+  async removeTaskAttachment(taskId: string, attachmentUrl: string): Promise<TaskEntity> {
     const existingTask = await this.taskRepository.findById(taskId);
     if (!existingTask) {
       throw new Error('Task not found');
-    }
-
-    // If userId is provided, ensure the task belongs to the user (unless user is admin)
-    if (userId && existingTask.userId !== userId) {
-      const user = await this.userRepository.findById(userId);
-      if (user?.role !== 'admin') {
-        throw new Error('Access denied');
-      }
     }
 
     const updatedTask = existingTask.removeAttachment(attachmentUrl);

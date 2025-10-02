@@ -28,4 +28,5 @@ export interface TaskFilters {
   endDate?: Date;
   priority?: 'Low' | 'Medium' | 'High';
   tags?: string[];
+  search?: string;
 }

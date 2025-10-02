@@ -177,6 +177,7 @@ export const taskValidationSchemas = {
       endDate: Joi.date().iso().optional().messages({
         'date.format': 'End date must be in ISO format',
       }),
+      search: Joi.optional(),
     }),
   },
 

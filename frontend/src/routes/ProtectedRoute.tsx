@@ -15,7 +15,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const user = useAppSelector(selectUser);
   // Check if user is authenticated
-  console.log('ProtectedRoute - isAuthenticated:', isAuthenticated, 'user:', user);
   if (!isAuthenticated) {
     // Redirect to login page with return url
     return <Navigate to='/login' state={{ from: location }} replace />;

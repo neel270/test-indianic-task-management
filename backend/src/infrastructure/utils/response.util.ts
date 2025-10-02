@@ -115,19 +115,16 @@ export class ResponseUtil {
     res: Response,
     data: T[],
     pagination: {
+      total: number;
       page: number;
       limit: number;
-      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+      totalItems: number;
     },
     message: string = 'Data retrieved successfully'
   ): void {
-    const totalPages = Math.ceil(pagination.total / pagination.limit);
-
-    this.success(res, data, message, APP_CONSTANTS.HTTP_STATUS.OK, {
-      page: pagination.page,
-      limit: pagination.limit,
-      total: pagination.total,
-      totalPages,
-    });
+    this.success(res, { data, pagination }, message, APP_CONSTANTS.HTTP_STATUS.OK);
   }
 }

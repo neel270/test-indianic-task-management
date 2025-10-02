@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useUsers } from '@/hooks/useUserApi';
 import { UserCard } from './UserCard';
 import { Button } from '@/components/ui/button';
@@ -17,17 +17,20 @@ interface UserListProps {
   viewMode?: 'grid' | 'list';
 }
 
-export const UserList = ({ viewMode = 'grid' }: UserListProps) => {
+const UserList = ({ viewMode = 'grid' }: UserListProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('admin');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const filters = {
-    ...(roleFilter !== 'all' && { role: roleFilter }),
-    ...(statusFilter !== 'all' && { isActive: statusFilter === 'active' }),
-    ...(searchTerm && { search: searchTerm }),
-  };
+  const filters = useMemo(
+    () => ({
+      ...(roleFilter !== 'all' && { role: roleFilter }),
+      ...(statusFilter !== 'all' && { isActive: statusFilter === 'active' }),
+      ...(searchTerm && { search: searchTerm }),
+    }),
+    [roleFilter, statusFilter, searchTerm]
+  );
 
   const {
     data: usersResponse,
@@ -35,11 +38,10 @@ export const UserList = ({ viewMode = 'grid' }: UserListProps) => {
     refetch,
   } = useUsers({
     page: currentPage,
-    limit: 10,
+    limit: 6,
     ...filters,
   });
-
-  const users = usersResponse?.data ?? [];
+  const users = useMemo(() => usersResponse?.data ?? [], [usersResponse]);
   const pagination = usersResponse?.pagination ?? {
     currentPage: 1,
     totalPages: 0,
@@ -56,13 +58,15 @@ export const UserList = ({ viewMode = 'grid' }: UserListProps) => {
     void refetch();
   };
 
-
   const clearFilters = () => {
     setSearchTerm('');
     setRoleFilter('all');
     setStatusFilter('all');
     setCurrentPage(1);
     void refetch();
+  };
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   if (isLoading && users.length === 0) {
@@ -162,12 +166,45 @@ export const UserList = ({ viewMode = 'grid' }: UserListProps) => {
               : 'space-y-4'
           }
         >
-          {users.map(user => (
+          {users.map((user) => (
             <UserCard key={user.id} user={user} />
           ))}
         </div>
       )}
+      <div className='flex items-center justify-center space-x-2 mt-6'>
+        <Button
+          variant='outline'
+          size='sm'
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage <= 1}
+        >
+          Previous
+        </Button>
 
+        <div className='flex items-center space-x-1'>
+          {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(page => (
+            <Button
+              key={page}
+              variant={currentPage === page ? 'default' : 'outline'}
+              size='sm'
+              onClick={() => handlePageChange(page)}
+              className='w-8 h-8 p-0'
+            >
+              {page}
+            </Button>
+          ))}
+        </div>
+
+        <Button
+          variant='outline'
+          size='sm'
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage >= pagination.totalPages}
+        >
+          Next
+        </Button>
+      </div>
     </div>
   );
 };
+export default UserList;

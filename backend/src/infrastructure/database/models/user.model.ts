@@ -49,7 +49,13 @@ export class UserModelMapper {
       mongooseDoc.updatedAt
     );
   }
-
+  static fileNameFromUrlRegex(url: string): string {
+    // remove query string/hash, then take last segment
+    const noQ = url.split(/[?#]/)[0];
+    const parts = noQ.split('/');
+    const last = parts.pop() ?? parts.pop(); // handle trailing slash
+    return last ? decodeURIComponent(last) : '';
+  }
   static toPersistence(domain: UserEntity): UserModel {
     return {
       id: domain.id,
@@ -59,7 +65,7 @@ export class UserModelMapper {
       password: domain.password,
       role: domain.role,
       isActive: domain.isActive,
-      profileImage: domain.profileImage,
+      profileImage: this.fileNameFromUrlRegex(domain.profileImage ?? ''),
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
     };

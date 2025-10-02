@@ -1,3 +1,4 @@
+import { env } from '../../../infrastructure/config';
 import { UserService } from '../../../application/services/user.service';
 import { ImageService } from '../../../infrastructure/services/image.service';
 
@@ -28,25 +29,20 @@ export class UploadProfileImageUseCase {
   }> {
     try {
       // Process and resize the image first
-      await this.imageService.resizeProfileImage(data.file.path, data.userId);
-
-      // Generate image URL
-      const imageUrl = `/uploads/profiles/${data.userId}/${data.file.originalname}`;
+      const outPut = await this.imageService.resizeProfileImage(data.file.path, data.userId);
 
       // Use UserService to update user profile with new image path
-      await this.userService.updateProfileImage(data.userId, imageUrl);
+      await this.userService.updateProfileImage(data.userId, outPut.fileName);
 
       return {
-        imageUrl,
+        imageUrl: `${env.baseUrl}/${outPut.outputPath}`,
         originalName: data.file.originalname,
         size: data.file.size,
         mimetype: data.file.mimetype,
       };
-    } catch (error) {
+    } catch (error: Error | unknown) {
       throw new Error(
-        `Failed to upload profile image: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`
+        `Failed to upload profile image: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }

@@ -2,6 +2,8 @@ import apiClient from '@/lib/axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toastError, toastSuccess } from './use-toast';
 import { Task, TaskStatus, TaskPriority, TaskFilters } from '../types/task';
+import { useSocketContext } from '../contexts/SocketContext';
+import { useEffect } from 'react';
 
 // Re-export for backward compatibility
 export type { Task, TaskStatus, TaskPriority, TaskFilters };
@@ -51,7 +53,7 @@ export const useTasks = (page: number = 1, limit: number = 10, filters?: TaskFil
         page: page.toString(),
         limit: limit.toString(),
       };
-
+      console.log(filters,'filters')
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value !== '') {
@@ -59,10 +61,7 @@ export const useTasks = (page: number = 1, limit: number = 10, filters?: TaskFil
           }
         });
       }
-
       const response = await apiClient.get<TaskListResponse>('/tasks', { params });
-      console.log('useTasks - fetched data:', response.data);
-
       // The backend returns { data: PaginatedTasksResult }, but we need to extract it
       const backendResponse = response.data as any;
       return {
@@ -171,7 +170,6 @@ export const useUpdateTask = () => {
       updates: UpdateTaskRequest;
     }): Promise<Task> => {
       const formData = new FormData();
-      console.log('Updating task with ID:', id, 'and updates:', updates);
       // Add text fields to FormData
       if (updates.title) formData.append('title', updates.title);
       if (updates.description) formData.append('description', updates.description);

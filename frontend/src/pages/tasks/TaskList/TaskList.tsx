@@ -14,12 +14,12 @@ import { useNavigate } from 'react-router-dom';
 import { useSocketContext } from '../../../contexts/SocketContext';
 import { useAppSelector } from '@/store/hooks';
 import { selectUser } from '@/store/slices/authSlice';
-
 const TaskList: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const user = useAppSelector(selectUser);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all');
+  const [assignedUserFilter, setAssignedUserFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
@@ -50,6 +50,8 @@ const TaskList: React.FC = () => {
     refetch,
   } = useTasks(currentPage, itemsPerPage, {
     ...(statusFilter !== 'all' && { status: statusFilter }),
+    ...(assignedUserFilter !== 'all' && { assignedTo: assignedUserFilter }),
+    ...(searchTerm !== 'all' && { search: searchTerm }),
   });
 
   const deleteTaskMutation = useDeleteTask();
@@ -58,12 +60,14 @@ const TaskList: React.FC = () => {
   const tasks = tasksResponse?.data || [];
   const totalPages = tasksResponse?.pagination?.totalPages || 0;
 
-  // Filter tasks based on search term (client-side filtering for search)
+  // Filter tasks based on search term and assigned user (client-side filtering for search)
   const filteredTasks = tasks.filter(task => {
-    const matchesSearch =
-      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+    const matchesAssignedUser =
+      assignedUserFilter === 'all' ||
+      (assignedUserFilter === 'unassigned' && !task.assignedTo) ||
+      (task.assignedTo && task.assignedTo.toString() === assignedUserFilter);
+
+    return matchesAssignedUser;
   });
 
   const handlePageChange = (page: number) => {
@@ -132,7 +136,11 @@ const TaskList: React.FC = () => {
     };
 
     // Handle real-time task status change notifications
-    const handleTaskStatusChanged = (taskData: { id: string; status: string; title?: string }) => {
+    const handleTaskStatusChanged = (taskData: {
+      id: string;
+      status: TaskStatus;
+      title?: string;
+    }) => {
       const taskTitle = taskData.title || `Task ${taskData.id}`;
 
       switch (taskData.status) {
@@ -261,9 +269,20 @@ const TaskList: React.FC = () => {
         <CardContent className='p-4'>
           <TaskFilters
             searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
+            onSearchChange={value => {
+              setSearchTerm(value);
+              setCurrentPage(1);
+            }}
             statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
+            onStatusFilterChange={value => {
+              setStatusFilter(value);
+              setCurrentPage(1);
+            }}
+            assignedUserFilter={assignedUserFilter}
+            onAssignedUserFilterChange={value => {
+              setAssignedUserFilter(value);
+              setCurrentPage(1);
+            }}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             onExport={() =>

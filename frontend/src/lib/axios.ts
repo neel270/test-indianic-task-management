@@ -34,10 +34,6 @@ const processQueue = (error: unknown, token: string | null = null): void => {
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
     return config;
   },
   async (error: unknown): Promise<void> => {
@@ -73,47 +69,10 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       _isRefreshing = true;
 
-      const refreshToken = localStorage.getItem('refreshToken');
 
-      if (refreshToken) {
-        try {
-          // Attempt to refresh token
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refreshToken,
-          });
-
-          if (response.data?.token) {
-            const { token } = response.data;
-
-            // Update stored tokens
-            localStorage.setItem('token', token);
-
-            // Update the original request with new token
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
-
-            // Process queued requests with new token
-            processQueue(null, token);
-
-            // Retry original request
-            return apiClient(originalRequest);
-          }
-        } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
-          // Refresh failed, clear tokens and redirect to auth
-          processQueue(refreshError);
-         window.location.href = '/login';
-          return Promise.reject(refreshError);
-        } finally {
-          _isRefreshing = false;
-        }
-      } else {
         // No refresh token, redirect to auth
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
         window.location.href = '/login';
-      }
+
     }
 
     return Promise.reject(error);

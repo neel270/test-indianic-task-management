@@ -84,9 +84,9 @@ export class UserService {
   async getAllUsers(
     page: number = 1,
     limit: number = 10,
-    _filters?: UserFilters
+    filters?: UserFilters
   ): Promise<PaginatedUsersResult> {
-    const result = await this.userRepository.findAll(page, limit);
+    const result = await this.userRepository.findAll(page, limit, filters);
     const totalPages = Math.ceil(result.total / limit);
 
     return {

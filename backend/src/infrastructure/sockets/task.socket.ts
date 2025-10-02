@@ -93,8 +93,8 @@ export class TaskSocket {
           }
           this.userSockets.get(decoded.userId)!.add(socket.id);
 
-          socket.join(`user:${decoded.userId}`);
-          socket.join(`role:${decoded.role}`);
+          await socket.join(`user:${decoded.userId}`);
+          await socket.join(`role:${decoded.role}`);
 
           socket.emit('authenticated', { success: true });
           console.log(`User ${decoded.email} authenticated on socket ${socket.id}`);
@@ -106,23 +106,18 @@ export class TaskSocket {
 
       // Handle task creation
       socket.on('task_created', (taskData: any) => {
-        if (socket.userId) {
-          // Notify all users about new task (for admins) or just the user
-          socket.broadcast.emit('task_created', {
+        // Notify all connected users about new task
+        if (this.io) {
+          this.io.emit('task_created', {
             ...taskData,
-            createdBy: socket.userId,
           });
-          if (this.io) {
-            // Also emit to user-specific room
-            this.io.to(`user:${socket.userId}`).emit('task_created', taskData);
-          }
         }
       });
 
       // Handle task updates
       socket.on('task_updated', (taskData: any) => {
-        if (socket.userId) {
-          socket.broadcast.emit('task_updated', {
+        if (this.io) {
+          this.io.emit('task_updated', {
             ...taskData,
             updatedBy: socket.userId,
           });
@@ -131,8 +126,8 @@ export class TaskSocket {
 
       // Handle task deletion
       socket.on('task_deleted', (taskData: any) => {
-        if (socket.userId) {
-          socket.broadcast.emit('task_deleted', {
+        if (this.io) {
+          this.io.emit('task_deleted', {
             ...taskData,
             deletedBy: socket.userId,
           });
@@ -141,103 +136,48 @@ export class TaskSocket {
 
       // Handle task status changes
       socket.on('task_status_changed', (taskData: any) => {
-        if (socket.userId) {
-          socket.broadcast.emit('task_status_changed', {
+        if (this.io) {
+          this.io.emit('task_status_changed', {
             ...taskData,
-            changedBy: socket.userId,
           });
         }
       });
 
       // Handle real-time task assignment
       socket.on('task_assigned', (taskData: any) => {
-        if (socket.userId && taskData.assignedTo) {
-          // Notify the assigned user
+        if (taskData.assignedTo) {
+          // Notify all connected users about task assignment
           if (this.io) {
-            this.io.to(`user:${taskData.assignedTo}`).emit('task_assigned', {
+            this.io.emit('task_assigned', {
               ...taskData,
-              assignedBy: socket.userId,
             });
           }
 
           socket.emit('task_assigned_success', { message: 'Task assigned successfully' });
         }
       });
-
-      // Handle typing indicators for collaborative editing
-      socket.on('typing_start', (taskId: string) => {
-        if (socket.userId) {
-          socket.broadcast.to(`task:${taskId}`).emit('user_typing_start', {
-            userId: socket.userId,
-            userEmail: socket.userEmail,
-            taskId,
-          });
-        }
-      });
-
-      socket.on('typing_stop', (taskId: string) => {
-        if (socket.userId) {
-          socket.broadcast.to(`task:${taskId}`).emit('user_typing_stop', {
-            userId: socket.userId,
-            userEmail: socket.userEmail,
-            taskId,
-          });
-        }
-      });
-
-      // Handle task comments (if implemented)
-      socket.on('task_comment_added', (commentData: any) => {
-        if (socket.userId) {
-          socket.broadcast.emit('task_comment_added', {
-            ...commentData,
-            commentedBy: socket.userId,
-          });
-        }
-      });
-
       // Handle task reminders
       socket.on('task_reminder_due', (taskData: any) => {
         if (socket.userId) {
           if (this.io) {
-            this.io.to(`user:${socket.userId}`).emit('task_reminder', taskData);
+            this.io.emit('task_reminder', taskData);
           }
         }
       });
-
-      // Handle user status updates
-      socket.on('user_online', () => {
-        if (socket.userId) {
-          socket.broadcast.emit('user_online', {
-            userId: socket.userId,
-            userEmail: socket.userEmail,
-          });
-        }
-      });
-
-      socket.on('user_offline', () => {
-        if (socket.userId) {
-          socket.broadcast.emit('user_offline', {
-            userId: socket.userId,
-            userEmail: socket.userEmail,
-          });
-        }
-      });
-
       // Handle room joining for task collaboration
-      socket.on('join_task_room', (taskId: string) => {
-        socket.join(`task:${taskId}`);
+      socket.on('join_task_room', async (taskId: string) => {
+        await socket.join(`task:${taskId}`);
         socket.emit('joined_task_room', { taskId });
       });
 
-      socket.on('leave_task_room', (taskId: string) => {
-        socket.leave(`task:${taskId}`);
+      socket.on('leave_task_room', async (taskId: string) => {
+        await socket.leave(`task:${taskId}`);
         socket.emit('left_task_room', { taskId });
       });
 
       // Handle disconnection
       socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
-
         if (socket.userId) {
           // Remove socket from user tracking
           const userSocketIds = this.userSockets.get(socket.userId);
@@ -245,12 +185,6 @@ export class TaskSocket {
             userSocketIds.delete(socket.id);
             if (userSocketIds.size === 0) {
               this.userSockets.delete(socket.userId);
-
-              // Notify others that user went offline
-              socket.broadcast.emit('user_offline', {
-                userId: socket.userId,
-                userEmail: socket.userEmail,
-              });
             }
           }
         }
@@ -267,20 +201,6 @@ export class TaskSocket {
     this.io.on('connection_error', error => {
       console.error('Connection error:', error);
     });
-  }
-
-  // Method to emit task updates to specific users
-  public emitTaskUpdateToUser(userId: string, event: string, data: any): void {
-    if (this.io) {
-      this.io.to(`user:${userId}`).emit(event, data);
-    }
-  }
-
-  // Method to emit task updates to all users with specific role
-  public emitTaskUpdateToRole(role: string, event: string, data: any): void {
-    if (this.io) {
-      this.io.to(`role:${role}`).emit(event, data);
-    }
   }
 
   // Method to emit task updates to all connected users
@@ -309,20 +229,6 @@ export class TaskSocket {
   public sendNotificationToUser(userId: string, notification: any): void {
     if (this.io) {
       this.io.to(`user:${userId}`).emit('notification', notification);
-    }
-  }
-
-  // Method to broadcast task reminder
-  public broadcastTaskReminder(taskData: any): void {
-    if (this.io) {
-      this.io.emit('task_reminder', taskData);
-    }
-  }
-
-  // Method to broadcast system announcement
-  public broadcastAnnouncement(announcement: any): void {
-    if (this.io) {
-      this.io.emit('system_announcement', announcement);
     }
   }
 }
