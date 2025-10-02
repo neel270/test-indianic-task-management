@@ -132,8 +132,8 @@ export const useCreateTask = () => {
 
       // Add files to FormData
       if (taskData.attachments && taskData.attachments.length > 0) {
-        taskData.attachments.forEach(file => {
-          formData.append(`attachments`, file);
+        taskData.attachments.forEach((file) => {
+          formData.append('attachments', file);
         });
       }
 
@@ -191,8 +191,8 @@ export const useUpdateTask = () => {
 
       // Add files to FormData
       if (updates.attachments && updates.attachments.length > 0) {
-        updates.attachments.forEach(file => {
-          formData.append(`attachments`, file);
+        updates.attachments.forEach((file) => {
+          formData.append('attachments', file);
         });
       }
 

@@ -56,3 +56,18 @@ export interface TaskFilters {
   dueDateFrom?: string;
   dueDateTo?: string;
 }
+
+export interface DashboardStats {
+  totalTasks: number;
+  completedTasks: number;
+  pendingTasks: number;
+  inProgressTasks: number;
+  overdueTasks: number;
+  completionRate: number;
+}
+
+export interface DashboardData {
+  stats: DashboardStats;
+  recentTasks: Task[];
+  overdueTasks: Task[];
+}

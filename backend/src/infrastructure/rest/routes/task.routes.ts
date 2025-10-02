@@ -13,6 +13,13 @@ import {
 } from '../../middlewares/express-validation.middleware';
 import { taskFileUpload } from '../../config/multer.config';
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Tasks
+ *     description: Task management endpoints including CRUD operations, file attachments, and CSV export
+ */
+
 export const createTaskRoutes = (): Router => {
   const router = Router();
   const taskController = new TaskController();
@@ -29,6 +36,24 @@ export const createTaskRoutes = (): Router => {
     (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
     validateGetTasks,
     taskController.getTasks
+  );
+  router.get(
+    '/stats',
+    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
+    taskController.getTaskStats
+  );
+  router.get(
+    '/export/csv',
+    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
+    validateExportTasksToCSV,
+    taskController.exportTasksToCSV
+  );
+
+  // Serve attachment files
+  router.get(
+    '/attachments/:userId/:taskId/:filename',
+    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
+    taskController.serveAttachment
   );
   router.get(
     '/:id',
@@ -60,24 +85,6 @@ export const createTaskRoutes = (): Router => {
     (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
     validateMarkTaskPending,
     taskController.markTaskPending
-  );
-  router.get(
-    '/stats',
-    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
-    taskController.getTaskStats
-  );
-  router.get(
-    '/export/csv',
-    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
-    validateExportTasksToCSV,
-    taskController.exportTasksToCSV
-  );
-
-  // Serve attachment files
-  router.get(
-    '/attachments/:userId/:taskId/:filename',
-    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
-    taskController.serveAttachment
   );
 
   return router;

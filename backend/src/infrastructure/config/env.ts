@@ -30,7 +30,7 @@ export interface EnvironmentConfig {
   emailPassword: string;
   emailFrom: string;
 }
-dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '../../../../.env') });
 
 export const env: EnvironmentConfig = {
   port: parseInt(process.env.PORT ?? '5000', 10),

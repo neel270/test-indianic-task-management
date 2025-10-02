@@ -128,10 +128,6 @@ export const taskValidationSchemas = {
         'string.min': 'Tag cannot be empty',
         'string.max': 'Tag cannot exceed 50 characters',
       }),
-      attachments: Joi.array().items(Joi.string().uri()).max(5).optional().messages({
-        'array.max': 'Cannot have more than 5 attachments',
-        'string.uri': 'Each attachment must be a valid URL',
-      }),
     }),
   },
 
@@ -159,10 +155,6 @@ export const taskValidationSchemas = {
         'array.max': 'Cannot have more than 10 tags',
         'string.min': 'Tag cannot be empty',
         'string.max': 'Tag cannot exceed 50 characters',
-      }),
-      attachments: Joi.array().items(Joi.string().uri()).max(5).optional().messages({
-        'array.max': 'Cannot have more than 5 attachments',
-        'string.uri': 'Each attachment must be a valid URL',
       }),
     }),
     params: Joi.object({

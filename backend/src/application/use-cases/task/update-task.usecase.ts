@@ -1,21 +1,21 @@
 import { TaskEntity } from '../../../domain/entities/task.entity';
-import { ITaskRepository } from '../../../domain/repositories/task.repository';
-import { IUserRepository } from '../../../domain/repositories/user.repository';
-import { TaskRepositoryImpl } from '../../../infrastructure/repositories/task.repository.impl';
-import { UserRepositoryImpl } from '../../../infrastructure/repositories/user.repository.impl';
 import { UpdateTaskDto } from '../../dtos/task.dto';
 import { TaskService } from '../../services/task.service';
+import { EmailService } from '../../../infrastructure/services/email.service';
+import { TaskSocket } from '../../../infrastructure/sockets/task.socket';
 import * as fs from 'fs';
 import * as path from 'path';
 import { env } from '../../../infrastructure/config/env';
 
 export class UpdateTaskUseCase {
   private taskService: TaskService;
+  private emailService: EmailService;
+  private taskSocket: TaskSocket;
 
-  constructor(taskRepository?: ITaskRepository, userRepository?: IUserRepository) {
-    const taskRepo = taskRepository ?? new TaskRepositoryImpl();
-    const userRepo = userRepository ?? new UserRepositoryImpl();
-    this.taskService = new TaskService(taskRepo, userRepo);
+  constructor() {
+    this.taskService = new TaskService();
+    this.emailService = new EmailService();
+    this.taskSocket = new TaskSocket();
   }
 
   async execute(
@@ -87,6 +87,42 @@ export class UpdateTaskUseCase {
       }
 
       const task = await this.taskService.updateTask(taskId, updatePayload, userId);
+
+      // Send notifications for task updates
+      try {
+        const taskData = {
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          dueDate: task.dueDate,
+          priority: task.priority,
+          userEmail: task.assignedTo, // This should be the assigned user's email
+        };
+
+        // Emit socket event for real-time updates
+        this.taskSocket.emitTaskUpdateToAll('task_updated', {
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          status: task.status,
+          dueDate: task.dueDate,
+          assignedTo: task.assignedTo,
+          userId: task.userId,
+          priority: task.priority,
+          tags: task.tags,
+          attachments: task.attachments,
+          updatedAt: task.updatedAt,
+          updatedBy: userId,
+        });
+
+        // Send email notification if task is completed
+        if (task.status === 'Completed' && existingTask.status !== 'Completed') {
+          await this.emailService.sendTaskCompletedEmail(taskData);
+        }
+      } catch (error) {
+        console.error('Failed to send task update notifications:', error);
+        // Don't fail the task update if notifications fail
+      }
 
       return task;
     } catch (error) {

@@ -13,6 +13,13 @@ import {
   validateChangePassword,
 } from '../../middlewares/express-validation.middleware';
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Authentication
+ *     description: User authentication and profile management endpoints
+ */
+
 export const createAuthRoutes = (): Router => {
   const router = Router();
   const authController = new AuthController();
@@ -23,24 +30,28 @@ export const createAuthRoutes = (): Router => {
   router.post('/forgot-password', validateForgotPassword, authController.forgotPassword);
   router.post('/verify-otp', validateVerifyOTP, authController.verifyOTP);
   router.post('/reset-password', validateResetPassword, authController.resetPassword);
-  router.get('/me', authMiddleware.authenticate, authController.me);
+  router.get(
+    '/me',
+    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
+    authController.me
+  );
   router.post(
     '/upload-profile-image',
-    authMiddleware.authenticate,
+    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
     profileImageUpload.single('profileImage'),
     authController.uploadProfileImage
   );
 
   router.put(
     '/profile',
-    authMiddleware.authenticate,
+    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
     validateUpdateProfile,
     authController.updateProfile
   );
 
   router.put(
     '/change-password',
-    authMiddleware.authenticate,
+    (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
     validateChangePassword,
     authController.changePassword
   );

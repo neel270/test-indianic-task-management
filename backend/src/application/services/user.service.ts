@@ -1,5 +1,6 @@
-import { UserEntity } from '../../domain/entities';
+import { UserRepositoryImpl } from './../../infrastructure/repositories/user.repository.impl';
 import { IUserRepository, UserFilters } from '../../domain/repositories/user.repository';
+import { UserEntity } from '../../domain/entities';
 import { Email } from '../../domain/value-objects/email.vo';
 
 export interface PaginatedUsersResult {
@@ -24,7 +25,11 @@ export interface UserStats {
 }
 
 export class UserService {
-  constructor(private readonly userRepository: IUserRepository) {}
+  private readonly userRepository: IUserRepository;
+
+  constructor() {
+    this.userRepository = new UserRepositoryImpl();
+  }
 
   async createUser(
     name: string,
@@ -157,6 +162,42 @@ export class UserService {
 
   async getUsersByRole(role: 'admin' | 'user'): Promise<UserEntity[]> {
     return await this.userRepository.findByRole(role);
+  }
+
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+  ): Promise<UserEntity> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Verify current password
+    const bcrypt = require('bcryptjs');
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      throw new Error('Current password is incorrect');
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update user password
+    return await this.userRepository.update(userId, {
+      ...user,
+      password: hashedNewPassword,
+    });
+  }
+
+  async updateProfileImage(userId: string, profileImage: string): Promise<UserEntity> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return await this.userRepository.updateProfileImage(userId, profileImage);
   }
 
   async getUserStats(): Promise<UserStats> {

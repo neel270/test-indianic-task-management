@@ -19,7 +19,6 @@ export interface TaskModel {
 
 export class TaskModelMapper {
   static toDomain(model: TaskModel): TaskEntity {
-    console.log('Mapping TaskModel to TaskEntity:', model);
     return new TaskEntity(
       model.id,
       model.title,
@@ -45,15 +44,11 @@ export class TaskModelMapper {
     assignedTo = assignedTo ?? (mongooseDoc.assignedTo ? mongooseDoc.assignedTo.toString() : null);
     let attachments = Array.isArray(mongooseDoc.attachments) ? mongooseDoc.attachments : [];
     attachments = attachments.map((attachment: string | null) => {
-      const fileUrl = `${env.baseUrl}/uploads/tasks/${userId}/${
+      const fileUrl = `${env.baseUrl}/uploads/${userId}/tasks/${
         mongooseDoc.id ?? mongooseDoc._id?.toString()
       }/${attachment}`;
       return fileUrl;
     });
-    console.log('Mapping Mongoose Document to TaskEntity:', mongooseDoc);
-    console.log('Extracted userId:', userId);
-    console.log('Extracted assignedTo:', assignedTo);
-    console.log('Extracted attachments:', attachments);
     return new TaskEntity(
       mongooseDoc.id ?? mongooseDoc._id?.toString(),
       mongooseDoc.title,
@@ -72,7 +67,6 @@ export class TaskModelMapper {
   }
 
   static toPersistence(domain: TaskEntity): TaskModel {
-    console.log('Mapping TaskEntity to TaskModel:', domain);
     return {
       id: domain.id,
       title: domain.title,

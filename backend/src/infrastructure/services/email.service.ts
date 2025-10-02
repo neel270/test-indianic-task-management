@@ -22,7 +22,7 @@ export class EmailService {
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: env.emailHost || 'smtp.gmail.com',
+      host: env.emailHost ?? 'smtp.gmail.com',
       port: env.emailPort,
       secure: false,
       auth: {
@@ -149,26 +149,26 @@ Task Management System`,
 
   async sendEmail(options: EmailOptions): Promise<void> {
     try {
-      let htmlContent = options.html || '';
-      let textContent = options.text || '';
+      let htmlContent = options.html ?? '';
+      let textContent = options.text ?? '';
       let subject = options.subject;
 
       // Use template if specified
       if (options.template && this.templates.has(options.template)) {
         const template = this.templates.get(options.template)!;
-        subject = this.replaceTemplateVariables(template.subject, options.data || {});
+        subject = this.replaceTemplateVariables(template.subject, options.data ?? {});
 
         if (!htmlContent && template.html) {
-          htmlContent = this.replaceTemplateVariables(template.html, options.data || {});
+          htmlContent = this.replaceTemplateVariables(template.html, options.data ?? {});
         }
 
         if (!textContent && template.text) {
-          textContent = this.replaceTemplateVariables(template.text, options.data || {});
+          textContent = this.replaceTemplateVariables(template.text, options.data ?? {});
         }
       }
 
       const mailOptions = {
-        from: env.emailFrom || env.emailUser,
+        from: env.emailFrom ?? env.emailUser,
         to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
         subject,
         html: htmlContent,
@@ -192,12 +192,12 @@ Task Management System`,
       taskDescription: taskData.description,
       dueDate: new Date(taskData.dueDate).toLocaleDateString(),
       hoursUntilDue,
-      priority: taskData.priority || 'Medium',
-      actionUrl: `${env.frontendUrl || 'http://localhost:3000'}/tasks/${taskData.id}`,
+      priority: taskData.priority ?? 'Medium',
+      actionUrl: `${env.frontendUrl ?? 'http://localhost:3000'}/tasks/${taskData.id}`,
     };
 
     const emailData = {
-      to: taskData.userEmail || 'user@example.com',
+      to: taskData.userEmail ?? 'user@example.com',
       subject: this.replaceTemplateVariables('Task Reminder: {{taskTitle}}', data),
       template: 'task-reminder',
       data,
@@ -211,12 +211,12 @@ Task Management System`,
       taskTitle: taskData.title,
       taskDescription: taskData.description,
       dueDate: new Date(taskData.dueDate).toLocaleDateString(),
-      priority: taskData.priority || 'Medium',
-      actionUrl: `${env.frontendUrl || 'http://localhost:3000'}/tasks/${taskData.id}`,
+      priority: taskData.priority ?? 'Medium',
+      actionUrl: `${env.frontendUrl ?? 'http://localhost:3000'}/tasks/${taskData.id}`,
     };
 
     const emailData = {
-      to: taskData.userEmail || 'user@example.com',
+      to: taskData.userEmail ?? 'user@example.com',
       subject: this.replaceTemplateVariables('New Task Created: {{taskTitle}}', data),
       template: 'task-created',
       data,
@@ -230,11 +230,11 @@ Task Management System`,
       taskTitle: taskData.title,
       taskDescription: taskData.description,
       completedAt: new Date().toLocaleDateString(),
-      actionUrl: `${env.frontendUrl || 'http://localhost:3000'}/tasks/${taskData.id}`,
+      actionUrl: `${env.frontendUrl ?? 'http://localhost:3000'}/tasks/${taskData.id}`,
     };
 
     const emailData = {
-      to: taskData.userEmail || 'user@example.com',
+      to: taskData.userEmail ?? 'user@example.com',
       subject: this.replaceTemplateVariables('Task Completed: {{taskTitle}}', data),
       template: 'task-completed',
       data,

@@ -9,11 +9,7 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import { env } from './infrastructure/config/env';
 import { logger } from './infrastructure/config/logger';
 import { errorMiddleware } from './infrastructure/rest/middlewares/error.middleware';
-import {
-  authRateLimit,
-  generalRateLimit,
-  strictRateLimit,
-} from './infrastructure/rest/middlewares/rate-limit.middleware';
+import { generalRateLimit } from './infrastructure/rest/middlewares/rate-limit.middleware';
 import {
   detectNoSQLInjection,
   detectSQLInjection,
@@ -70,12 +66,8 @@ export class Server {
     this.app.use(
       cors({
         origin: (origin, callback) => {
-          console.log(origin, env.allowedOrigins);
-          const allowedOrigins = env.allowedOrigins?.split(',') ?? [
-            'http://localhost:8080',
-            'http://localhost:3000',
-            'http://localhost:5000',
-          ];
+          const allowedOrigins = env.allowedOrigins?.split(',');
+          console.log('CORS check for origin:', origin, 'Allowed origins:', allowedOrigins);
           if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
           } else {
@@ -155,7 +147,11 @@ export class Server {
           },
         ],
       },
-      apis: ['./src/infrastructure/rest/routes/*.ts', './src/infrastructure/rest/controllers/*.ts'],
+      apis: [
+        './src/infrastructure/rest/routes/*.ts',
+        './src/infrastructure/rest/controllers/*.ts',
+        './src/infrastructure/documentation/*.ts',
+      ],
     };
 
     const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -187,7 +183,6 @@ export class Server {
               'http://localhost:3000',
               'http://localhost:5000',
             ];
-            console.log('Allowed origins:', allowedOrigins);
             if (!origin || allowedOrigins.includes(origin)) {
               callback(null, true);
             } else {
@@ -235,14 +230,6 @@ export class Server {
         reminderJobRunning: this.taskReminderJob?.getStatus().isRunning ?? false,
       });
     });
-
-    // API routes with specific rate limiting
-
-    // Apply stricter rate limiting for authentication routes
-    this.app.use('/api/v1/users/auth', authRateLimit);
-    this.app.use('/api/v1/users/login', authRateLimit);
-    this.app.use('/api/v1/users/register', strictRateLimit);
-
     this.app.use('/api/v1/auth', createAuthRoutes());
     this.app.use('/api/v1/tasks', createTaskRoutes());
     this.app.use('/api/v1/users', createUserRoutes());

@@ -1,7 +1,5 @@
 import { Socket, Server as SocketIOServer } from 'socket.io';
 import { AuthService } from '../../application/services/auth.service';
-import { TaskRepositoryImpl } from '../repositories/task.repository.impl';
-import { UserRepositoryImpl } from '../repositories/user.repository.impl';
 
 type AuthenticatedSocket = Socket & {
   userId?: string;
@@ -15,7 +13,7 @@ export class TaskSocket {
   private userSockets: Map<string, Set<string>> = new Map(); // userId -> Set of socketIds
 
   constructor(io?: SocketIOServer) {
-    this.authService = new AuthService(new UserRepositoryImpl(), new TaskRepositoryImpl());
+    this.authService = new AuthService();
 
     if (io) {
       console.log('TaskSocket: SocketIO server provided, validating...');
@@ -100,7 +98,7 @@ export class TaskSocket {
 
           socket.emit('authenticated', { success: true });
           console.log(`User ${decoded.email} authenticated on socket ${socket.id}`);
-        } catch (error) {
+        } catch {
           socket.emit('authentication_error', { message: 'Invalid token' });
           socket.disconnect();
         }

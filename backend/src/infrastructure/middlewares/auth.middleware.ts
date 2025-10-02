@@ -1,7 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
 import { AuthService } from '../../application/services/auth.service';
-import { TaskRepositoryImpl } from '../repositories/task.repository.impl';
-import { UserRepositoryImpl } from '../repositories/user.repository.impl';
 
 // Extend Express Request interface to include user
 declare global {
@@ -20,15 +18,12 @@ export class AuthMiddleware {
   private authService: AuthService;
 
   constructor() {
-    const userRepository = new UserRepositoryImpl();
-    const taskRepository = new TaskRepositoryImpl();
-    this.authService = new AuthService(userRepository, taskRepository);
+    this.authService = new AuthService();
   }
 
   authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authHeader = req.headers.authorization;
-
       if (!authHeader?.startsWith('Bearer ')) {
         res.status(401).json({
           success: false,

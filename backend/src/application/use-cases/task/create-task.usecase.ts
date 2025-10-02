@@ -1,20 +1,20 @@
-import { ITaskRepository } from '../../../domain/repositories/task.repository';
-import { IUserRepository } from '../../../domain/repositories/user.repository';
-import { TaskRepositoryImpl } from '../../../infrastructure/repositories/task.repository.impl';
-import { UserRepositoryImpl } from '../../../infrastructure/repositories/user.repository.impl';
 import { CreateTaskDto } from '../../dtos/task.dto';
 import { TaskService } from '../../services/task.service';
+import { EmailService } from '../../../infrastructure/services/email.service';
+import { TaskSocket } from '../../../infrastructure/sockets/task.socket';
 import * as fs from 'fs';
 import * as path from 'path';
 import { env } from '../../../infrastructure/config/env';
 
 export class CreateTaskUseCase {
   private taskService: TaskService;
+  private emailService: EmailService;
+  private taskSocket: TaskSocket;
 
-  constructor(taskRepository?: ITaskRepository, userRepository?: IUserRepository) {
-    const taskRepo = taskRepository ?? new TaskRepositoryImpl();
-    const userRepo = userRepository ?? new UserRepositoryImpl();
-    this.taskService = new TaskService(taskRepo, userRepo);
+  constructor() {
+    this.taskService = new TaskService();
+    this.emailService = new EmailService();
+    this.taskSocket = new TaskSocket();
   }
 
   async execute(
@@ -52,7 +52,7 @@ export class CreateTaskUseCase {
       // Handle file uploads if provided and move to correct folder structure
       if (files && files.length > 0) {
         const uploadDir = env.uploadDir;
-        const taskUploadDir = path.join(uploadDir, 'tasks', userId, task.id);
+        const taskUploadDir = path.join(uploadDir, userId, 'tasks', task.id);
 
         // Ensure upload directory exists
         fs.mkdirSync(taskUploadDir, { recursive: true });
@@ -93,6 +93,39 @@ export class CreateTaskUseCase {
 
         // Update the return object with correct attachment URLs
         (task as any).attachments = allAttachmentUrls;
+      }
+
+      // Send email notification for task creation
+      try {
+        const taskData = {
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          dueDate: task.dueDate,
+          priority: task.priority,
+          userEmail: task.assignedTo, // This should be the assigned user's email
+        };
+
+        await this.emailService.sendTaskCreatedEmail(taskData);
+
+        // Emit socket event for real-time updates
+        this.taskSocket.emitTaskUpdateToAll('task_created', {
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          status: task.status,
+          dueDate: task.dueDate,
+          assignedTo: task.assignedTo,
+          userId: task.userId,
+          priority: task.priority,
+          tags: task.tags,
+          attachments: task.attachments,
+          createdAt: task.createdAt,
+          createdBy: userId,
+        });
+      } catch (error) {
+        console.error('Failed to send task creation notifications:', error);
+        // Don't fail the task creation if notifications fail
       }
 
       return {

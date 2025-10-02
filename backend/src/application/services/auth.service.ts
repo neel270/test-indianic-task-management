@@ -1,7 +1,9 @@
+import { TaskRepositoryImpl } from './../../infrastructure/repositories/task.repository.impl';
+import { UserRepositoryImpl } from './../../infrastructure/repositories/user.repository.impl';
+import { EmailService } from './../../infrastructure/services/email.service';
+import { RedisService } from './../../infrastructure/services/redis.service';
 import { ITaskRepository } from '../../domain/repositories/task.repository';
 import { IUserRepository } from '../../domain/repositories/user.repository';
-import { RedisService } from '../../infrastructure/services/redis.service';
-import { EmailService } from '../../infrastructure/services/email.service';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
@@ -42,13 +44,17 @@ export class AuthService {
     REDIS_NOT_AVAILABLE: 'Redis service not available',
     DEPRECATED_METHOD: 'This method is deprecated. Please use resetPasswordWithEmail instead.',
   } as const;
+  private userRepository: IUserRepository;
+  private taskRepository: ITaskRepository;
+  private redisService: RedisService;
+  private emailService: EmailService;
 
-  constructor(
-    private readonly userRepository: IUserRepository,
-    private readonly taskRepository: ITaskRepository,
-    private readonly redisService?: RedisService,
-    private readonly emailService?: EmailService
-  ) {}
+  constructor() {
+    this.userRepository = new UserRepositoryImpl();
+    this.taskRepository = new TaskRepositoryImpl();
+    this.redisService = new RedisService();
+    this.emailService = new EmailService();
+  }
 
   async registerUser(
     email: string,

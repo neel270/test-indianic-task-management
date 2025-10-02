@@ -5,27 +5,26 @@
     "module": "commonjs",
     "lib": ["ES2020"],
     /* Project Structure */
-    "rootDir": "./src",                          // source files
-    "outDir": "./dist",                          // compiled files
-    "baseUrl": "./src",
+     "rootDir": "./src",                          // source files
+     "outDir": "./dist",                          // compiled files
     "paths": {
-      "@/*": ["*"],
-      "@/application/*": ["application/*"],
-      "@/domain/*": ["domain/*"],
-      "@/infrastructure/*": ["infrastructure/*"],
-      "@/interfaces/*": ["interfaces/*"],
-      "@/shared/*": ["shared/*"],
-      "@/application/use-cases/*": ["application/use-cases/*"],
-      "@/application/services/*": ["application/services/*"],
-      "@/application/dtos/*": ["application/dtos/*"],
-      "@/domain/entities/*": ["domain/entities/*"],
-      "@/domain/repositories/*": ["domain/repositories/*"],
-      "@/domain/value-objects/*": ["domain/value-objects/*"],
-      "@/infrastructure/rest/*": ["infrastructure/rest/*"],
-      "@/infrastructure/database/*": ["infrastructure/database/*"],
-      "@/infrastructure/services/*": ["infrastructure/services/*"],
-      "@/infrastructure/middlewares/*": ["infrastructure/middlewares/*"],
-      "@/infrastructure/config/*": ["infrastructure/config/*"]
+      "@/*": ["./*"],
+      "@/application/*": ["./application/*"],
+      "@/domain/*": ["./domain/*"],
+      "@/infrastructure/*": ["./infrastructure/*"],
+      "@/interfaces/*": ["./interfaces/*"],
+      "@/shared/*": ["./shared/*"],
+      "@/application/use-cases/*": ["./application/use-cases/*"],
+      "@/application/services/*": ["./application/services/*"],
+      "@/application/dtos/*": ["./application/dtos/*"],
+      "@/domain/entities/*": ["./domain/entities/*"],
+      "@/domain/repositories/*": ["./domain/repositories/*"],
+      "@/domain/value-objects/*": ["./domain/value-objects/*"],
+      "@/infrastructure/rest/*": ["./infrastructure/rest/*"],
+      "@/infrastructure/database/*": ["./infrastructure/database/*"],
+      "@/infrastructure/services/*": ["./infrastructure/services/*"],
+      "@/infrastructure/middlewares/*": ["./infrastructure/middlewares/*"],
+      "@/infrastructure/config/*": ["./infrastructure/config/*"]
     },
 
    "strict": true,

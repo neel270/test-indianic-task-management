@@ -1,4 +1,4 @@
-import { endOfWeek, format, isPast, isToday, startOfWeek } from 'date-fns';
+import { endOfWeek, format, isToday, startOfWeek } from 'date-fns';
 import {
   Activity,
   AlertCircle,
@@ -11,7 +11,7 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -23,61 +23,127 @@ import {
   CardTitle,
 } from '../../components/ui/card';
 import { Progress } from '../../components/ui/progress';
-import { Task } from '../../types/task';
 import { useAppSelector } from '@/store/hooks';
 import { selectUser } from '@/store/slices/authSlice';
+import { useDashboardData } from '../../hooks/useDashboardApi';
+import { useSocketContext } from '../../contexts/SocketContext';
+import { toast } from '../../hooks/use-toast';
 
-interface DashboardStats {
-  total: number;
-  completed: number;
-  pending: number;
-  overdue: number;
-  dueToday: number;
-  dueThisWeek: number;
-  completionRate: number;
-}
-
-interface DashboardProps {
-  tasks?: Task[];
-  loading?: boolean;
-}
-
-const Dashboard: React.FC<DashboardProps> = ({ tasks = [], loading = false }) => {
+const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const user = useAppSelector(selectUser);
-  // Calculate statistics
-  const stats: DashboardStats = React.useMemo(() => {
-    const total = tasks.length;
-    const completed = tasks.filter(task => task.status === 'completed').length;
-    const pending = tasks.filter(task => task.status === 'pending').length;
-    const overdue = tasks.filter(
-      task => task.status !== 'completed' && task.dueDate && isPast(new Date(task.dueDate))
-    ).length;
-    const dueToday = tasks.filter(task => task.dueDate && isToday(new Date(task.dueDate))).length;
+  const { stats, recentTasks, overdueTasks, isLoading, isAuthenticated, isSocketConnected } = useDashboardData();
+
+  // Socket integration for real-time notifications
+  const { onTaskCreated, onTaskUpdated, onNotification } = useSocketContext();
+
+  // Set up real-time notifications
+  useEffect(() => {
+    if (!isAuthenticated || !isSocketConnected) return;
+
+    // Handle real-time task creation notifications
+    const handleTaskCreated = (taskData: any) => {
+      toast({
+        title: 'New Task Created',
+        description: `"${taskData.title}" has been created.`,
+        variant: 'info',
+      });
+    };
+
+    // Handle real-time task update notifications
+    const handleTaskUpdated = (taskData: any) => {
+      if (taskData.status === 'Completed') {
+        toast({
+          title: 'Task Completed',
+          description: `"${taskData.title}" has been marked as completed.`,
+          variant: 'success',
+        });
+      }
+    };
+
+    // Handle general notifications from server
+    const handleNotification = (notification: any) => {
+      switch (notification.type) {
+        case 'task_reminder':
+          toast({
+            title: notification.title,
+            description: notification.message,
+            variant: 'warning',
+          });
+          break;
+        case 'task_urgent_reminder':
+          toast({
+            title: notification.title,
+            description: notification.message,
+            variant: 'error',
+          });
+          break;
+        case 'task_overdue':
+          toast({
+            title: notification.title,
+            description: notification.message,
+            variant: 'error',
+          });
+          break;
+        default:
+          toast({
+            title: 'Notification',
+            description: notification.message || 'You have a new notification.',
+            variant: 'info',
+          });
+      }
+    };
+
+    // Set up socket event listeners
+    onTaskCreated(handleTaskCreated);
+    onTaskUpdated(handleTaskUpdated);
+    onNotification(handleNotification);
+
+    // Cleanup function
+    return () => {
+      // Note: The socket context handles cleanup of event listeners
+    };
+  }, [isAuthenticated, isSocketConnected, onTaskCreated, onTaskUpdated, onNotification]);
+
+  // Calculate additional derived stats for UI compatibility
+  const derivedStats = React.useMemo(() => {
+    if (!stats) {
+      return {
+        total: 0,
+        completed: 0,
+        pending: 0,
+        overdue: 0,
+        dueToday: 0,
+        dueThisWeek: 0,
+        completionRate: 0,
+      };
+    }
+
     const now = new Date();
     const weekStart = startOfWeek(now);
     const weekEnd = endOfWeek(now);
-    const dueThisWeek = tasks.filter(
+
+    // Calculate due today and due this week from overdue tasks
+    const dueToday = overdueTasks.filter(task => task.dueDate && isToday(new Date(task.dueDate))).length;
+    const dueThisWeek = overdueTasks.filter(
       task =>
         task.dueDate && new Date(task.dueDate) >= weekStart && new Date(task.dueDate) <= weekEnd
     ).length;
 
-    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-
     return {
-      total,
-      completed,
-      pending,
-      overdue,
+      total: stats.totalTasks,
+      completed: stats.completedTasks,
+      pending: stats.pendingTasks,
+      overdue: stats.overdueTasks,
       dueToday,
       dueThisWeek,
-      completionRate,
+      completionRate: Math.round(stats.completionRate),
     };
-  }, [tasks]);
+  }, [stats, recentTasks]);
   const statCards = [
     {
       title: 'Total Tasks',
-      value: stats.total,
+      value: derivedStats.total,
       description: 'All your tasks',
       icon: FileText,
       color: 'text-blue-600',
@@ -86,16 +152,16 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks = [], loading = false }) =>
     },
     {
       title: 'Completed',
-      value: stats.completed,
-      description: `${stats.completionRate}% completion rate`,
+      value: derivedStats.completed,
+      description: `${derivedStats.completionRate}% completion rate`,
       icon: CheckCircle2,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
-      trend: stats.completionRate > 70 ? 'up' : stats.completionRate > 40 ? 'neutral' : 'down',
+      trend: derivedStats.completionRate > 70 ? 'up' : derivedStats.completionRate > 40 ? 'neutral' : 'down',
     },
     {
       title: 'Pending',
-      value: stats.pending,
+      value: derivedStats.pending,
       description: 'Tasks to complete',
       icon: Clock,
       color: 'text-yellow-600',
@@ -104,22 +170,29 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks = [], loading = false }) =>
     },
     {
       title: 'Due Today',
-      value: stats.dueToday,
+      value: derivedStats.dueToday,
       description: 'Urgent tasks',
       icon: Calendar,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
-      trend: stats.dueToday > 0 ? 'warning' : 'good',
+      trend: derivedStats.dueToday > 0 ? 'warning' : 'good',
     },
   ];
 
-  const recentTasks = tasks
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
-
-  const overdueTasks = tasks
-    .filter(task => task.status !== 'completed' && task.dueDate && isPast(new Date(task.dueDate)))
-    .slice(0, 5);
+  // Check if user is authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className='space-y-6'>
+        <div className='text-center py-12'>
+          <h1 className='text-3xl font-bold text-gray-900 mb-4'>Authentication Required</h1>
+          <p className='text-gray-600 mb-6'>Please log in to view your dashboard.</p>
+          <Button onClick={() => navigate('/login')}>
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='space-y-6'>
@@ -130,8 +203,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks = [], loading = false }) =>
           <p className='text-gray-600 mt-1'>Here's your task overview and progress for today.</p>
         </div>
         <div className='flex gap-3'>
-          <Badge variant={user?.role === 'admin' ? 'default' : 'secondary'}>{user?.role}</Badge>
-          <Button onClick={() => navigate('/tasks')}>
+          <Button onClick={() => navigate('/tasks/new')}>
             <Plus className='h-4 w-4 mr-2' />
             New Task
           </Button>
@@ -139,7 +211,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks = [], loading = false }) =>
       </div>
 
       {/* Stats Grid */}
-      {loading ? (
+      {isLoading ? (
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
           {[...Array(4)].map((_, i) => (
             <Card key={i} className='animate-pulse'>
@@ -205,18 +277,18 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks = [], loading = false }) =>
             <div className='space-y-2'>
               <div className='flex justify-between text-sm'>
                 <span>Overall Progress</span>
-                <span>{stats.completionRate}%</span>
+                <span>{derivedStats.completionRate}%</span>
               </div>
-              <Progress value={stats.completionRate} className='h-2' />
+              <Progress value={derivedStats.completionRate} className='h-2' />
             </div>
 
             <div className='grid grid-cols-2 gap-4 pt-4'>
               <div className='text-center'>
-                <div className='text-2xl font-bold text-green-600'>{stats.completed}</div>
+                <div className='text-2xl font-bold text-green-600'>{derivedStats.completed}</div>
                 <div className='text-sm text-gray-600'>Completed</div>
               </div>
               <div className='text-center'>
-                <div className='text-2xl font-bold text-yellow-600'>{stats.pending}</div>
+                <div className='text-2xl font-bold text-yellow-600'>{derivedStats.pending}</div>
                 <div className='text-sm text-gray-600'>Pending</div>
               </div>
             </div>
@@ -301,7 +373,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks = [], loading = false }) =>
                         {task.dueDate && `Due: ${format(new Date(task.dueDate), 'MMM d, yyyy')}`}
                       </p>
                     </div>
-                    <Badge variant={task.status === 'completed' ? 'default' : 'outline'}>
+                    <Badge variant={task.status === 'Completed' ? 'default' : 'outline'}>
                       {task.status}
                     </Badge>
                   </div>
@@ -312,12 +384,12 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks = [], loading = false }) =>
         </Card>
 
         {/* Overdue Tasks Alert */}
-        {stats.overdue > 0 && (
+        {derivedStats.overdue > 0 && (
           <Card className='border-red-200 bg-red-50'>
             <CardHeader>
               <CardTitle className='flex items-center text-red-800'>
                 <AlertCircle className='h-5 w-5 mr-2' />
-                Overdue Tasks ({stats.overdue})
+                Overdue Tasks ({derivedStats.overdue})
               </CardTitle>
               <CardDescription className='text-red-700'>
                 Tasks that need immediate attention

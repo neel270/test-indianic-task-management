@@ -1,6 +1,8 @@
-import { TaskEntity } from '../../domain/entities';
-import { ITaskRepository, TaskFilters } from '../../domain/repositories/task.repository';
+import { UserRepositoryImpl } from './../../infrastructure/repositories/user.repository.impl';
 import { IUserRepository } from '../../domain/repositories/user.repository';
+import { ITaskRepository, TaskFilters } from '../../domain/repositories/task.repository';
+import { TaskEntity } from '../../domain/entities';
+import { TaskRepositoryImpl } from '../../infrastructure/repositories/task.repository.impl';
 
 export interface PaginatedTasksResult {
   tasks: TaskEntity[];
@@ -24,11 +26,13 @@ export interface TaskStats {
 }
 
 export class TaskService {
-  constructor(
-    private readonly taskRepository: ITaskRepository,
-    private readonly userRepository: IUserRepository
-  ) {}
+  private readonly taskRepository: ITaskRepository;
+  private readonly userRepository: IUserRepository;
 
+  constructor() {
+    this.taskRepository = new TaskRepositoryImpl();
+    this.userRepository = new UserRepositoryImpl();
+  }
   async createTask(
     title: string,
     description: string,
@@ -47,22 +51,6 @@ export class TaskService {
     if (!user.isActive) {
       throw new Error('User account is deactivated');
     }
-    console.log(
-      'Creating task with data:',
-      {
-        title,
-        description,
-        status: 'Pending',
-        dueDate,
-        userId,
-        assignedTo,
-        priority,
-        tags,
-      },
-      'for user:',
-      userId
-    );
-
     // Create task entity
     const task = TaskEntity.create({
       title,
@@ -98,22 +86,6 @@ export class TaskService {
     if (!user.isActive) {
       throw new Error('User account is deactivated');
     }
-    console.log(
-      'Creating task with attachments:',
-      {
-        title,
-        description,
-        status: 'Pending',
-        dueDate,
-        userId,
-        assignedTo,
-        priority,
-        tags,
-        attachments,
-      },
-      'for user:',
-      userId
-    );
 
     // Create task entity with attachments
     const task = TaskEntity.create({

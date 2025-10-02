@@ -19,6 +19,7 @@ import {
   toggleUserStatusSchema,
   userStatsQuerySchema,
 } from '../validation/user.validation';
+import { APP_CONSTANTS } from '../../shared/constants';
 
 // Validation middleware factory
 export const validateRequest = (
@@ -28,13 +29,13 @@ export const validateRequest = (
     try {
       // Get the appropriate schema based on the key
       let schema: any;
-
+      console.log(schemaKey, 'schemaKey');
       if (schemaKey in validationSchemas.user) {
         schema = validationSchemas.user[schemaKey as keyof typeof validationSchemas.user];
       } else if (schemaKey in validationSchemas.task) {
         schema = validationSchemas.task[schemaKey as keyof typeof validationSchemas.task];
       } else {
-        res.status(500).json({
+        res.status(APP_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
           success: false,
           message: 'Invalid validation schema',
         });
@@ -46,9 +47,28 @@ export const validateRequest = (
 
       // Validate body if schema has body validation
       if (schema.body) {
-        const { error: bodyError } = schema.body.validate(req.body, { abortEarly: false });
+        // For multipart/form-data requests, the body might be parsed differently
+        // Check if this is a multipart request and handle accordingly
+        const contentType = req.get('content-type') ?? '';
+        const isMultipart = contentType.includes('multipart/form-data');
+
+        let bodyToValidate = req.body;
+
+        // For multipart requests, filter out file fields that shouldn't be in body validation
+        if (isMultipart && typeof req.body === 'object' && req.body !== null) {
+          bodyToValidate = { ...req.body };
+          // Remove common file field names that might appear in body during multipart parsing
+          delete bodyToValidate.attachments;
+          delete bodyToValidate.files;
+          delete bodyToValidate.file;
+        }
+
+        const { error: bodyError } = schema.body.validate(bodyToValidate, {
+          abortEarly: false,
+          allowUnknown: true, // Allow unknown fields for multipart requests
+        });
         if (bodyError) {
-          const bodyErrors = bodyError.details.map((detail: any) => detail.message);
+          const bodyErrors = bodyError.details.map((detail: { message: string }) => detail.message);
           errors.push(...bodyErrors);
         }
       }
@@ -57,7 +77,9 @@ export const validateRequest = (
       if (schema.query) {
         const { error: queryError } = schema.query.validate(req.query, { abortEarly: false });
         if (queryError) {
-          const queryErrors = queryError.details.map((detail: any) => detail.message);
+          const queryErrors = queryError.details.map(
+            (detail: { message: string }) => detail.message
+          );
           errors.push(...queryErrors);
         }
       }
@@ -66,13 +88,15 @@ export const validateRequest = (
       if (schema.params) {
         const { error: paramsError } = schema.params.validate(req.params, { abortEarly: false });
         if (paramsError) {
-          const paramsErrors = paramsError.details.map((detail: any) => detail.message);
+          const paramsErrors = paramsError.details.map(
+            (detail: { message: string }) => detail.message
+          );
           errors.push(...paramsErrors);
         }
       }
-
+      console.log(errors, 'validationRequest errors');
       if (errors.length > 0) {
-        return res.status(400).json({
+        return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
           success: false,
           message: 'Validation failed',
           errors,
@@ -82,7 +106,7 @@ export const validateRequest = (
       next();
     } catch (error) {
       console.error('Validation middleware error:', error);
-      res.status(500).json({
+      res.status(APP_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Internal server error during validation',
       });
@@ -101,10 +125,15 @@ export const validateRegister = (
   res: Response,
   next: NextFunction
 ): void | Response => {
-  const { error } = registerSchema.validate(req.body, { abortEarly: false });
+  const { error } = registerSchema.validate(req.body, {
+    abortEarly: false,
+    allowUnknown: true,
+  });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    console.log(errors, 'validateRegister errors');
+
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -116,8 +145,9 @@ export const validateRegister = (
 export const validateLogin = (req: Request, res: Response, next: NextFunction): void | Response => {
   const { error } = loginSchema.validate(req.body, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    console.log(errors, 'validateLogin errors');
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -133,8 +163,9 @@ export const validateRefreshToken = (
 ): void | Response => {
   const { error } = refreshTokenSchema.validate(req.body, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    console.log(errors, 'validateRefreshToken errors');
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -150,8 +181,9 @@ export const validateForgotPassword = (
 ): void | Response => {
   const { error } = forgotPasswordSchema.validate(req.body, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    console.log(errors, 'validateForgotPassword errors');
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -167,8 +199,9 @@ export const validateVerifyOTP = (
 ): void | Response => {
   const { error } = verifyOTPSchema.validate(req.body, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    console.log(errors, 'validateVerifyOTP errors');
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -184,8 +217,9 @@ export const validateResetPassword = (
 ): void | Response => {
   const { error } = resetPasswordSchema.validate(req.body, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    console.log(errors, 'validateResetPassword errors');
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -201,8 +235,9 @@ export const validateChangePassword = (
 ): void | Response => {
   const { error } = changePasswordSchema.validate(req.body, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    console.log(errors, 'validateChangePassword errors');
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -218,8 +253,9 @@ export const validateUpdateProfile = (
 ): void | Response => {
   const { error } = updateProfileSchema.validate(req.body, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    console.log(errors, 'validateUpdateProfile errors');
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -236,8 +272,8 @@ export const validateCreateUser = (
 ): void | Response => {
   const { error } = createUserSchema.validate(req.body, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -253,8 +289,8 @@ export const validateUpdateUser = (
 ): void | Response => {
   const { error } = updateUserSchema.validate(req.body, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -270,8 +306,8 @@ export const validateUserQuery = (
 ): void | Response => {
   const { error } = userQuerySchema.validate(req.query, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -287,8 +323,8 @@ export const validateUserId = (
 ): void | Response => {
   const { error } = userIdSchema.validate(req.params, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -304,8 +340,8 @@ export const validateUserRole = (
 ): void | Response => {
   const { error } = userRoleSchema.validate(req.params, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -321,8 +357,8 @@ export const validateToggleUserStatus = (
 ): void | Response => {
   const { error } = toggleUserStatusSchema.validate(req.body, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,
@@ -338,8 +374,8 @@ export const validateUserStatsQuery = (
 ): void | Response => {
   const { error } = userStatsQuerySchema.validate(req.query, { abortEarly: false });
   if (error) {
-    const errors = error.details.map((detail: any) => detail.message);
-    return res.status(400).json({
+    const errors = error.details.map((detail: { message: string }) => detail.message);
+    return res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
       success: false,
       message: 'Validation failed',
       errors,

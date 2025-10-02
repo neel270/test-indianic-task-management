@@ -14,6 +14,7 @@ import { TaskSocket } from '../../sockets/task.socket';
 import { UserRepositoryImpl } from '../../repositories/user.repository.impl';
 import { APP_CONSTANTS } from '../../../shared/constants/app.constants';
 import { env } from '../../config';
+import { ResponseUtil } from '../../utils/response.util';
 export class TaskController {
   private createTaskUseCase: CreateTaskUseCase;
   private updateTaskUseCase: UpdateTaskUseCase;
@@ -24,7 +25,7 @@ export class TaskController {
   private emailService: EmailService;
   private taskSocket: TaskSocket;
   private userRepository: UserRepositoryImpl;
-  constructor(taskSocket?: TaskSocket) {
+  constructor() {
     this.createTaskUseCase = new CreateTaskUseCase();
     this.updateTaskUseCase = new UpdateTaskUseCase();
     this.deleteTaskUseCase = new DeleteTaskUseCase();
@@ -33,9 +34,64 @@ export class TaskController {
     this.getTaskStatsUseCase = new GetTaskStatsUseCase();
     this.emailService = new EmailService();
     this.userRepository = new UserRepositoryImpl();
-    this.taskSocket = taskSocket ?? new TaskSocket({} as any);
+    this.taskSocket = new TaskSocket();
   }
 
+  /**
+   * @swagger
+   * /api/v1/tasks:
+   *   post:
+   *     tags:
+   *       - Tasks
+   *     summary: Create a new task
+   *     description: Create a new task with optional file attachments
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         multipart/form-data:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               title:
+   *                 type: string
+   *                 example: "Complete project documentation"
+   *               description:
+   *                 type: string
+   *                 example: "Write comprehensive documentation for the new API endpoints"
+   *               dueDate:
+   *                 type: string
+   *                 format: date
+   *                 example: "2023-12-31"
+   *               assignedTo:
+   *                 type: string
+   *                 example: "507f1f77bcf86cd799439011"
+   *               status:
+   *                 type: string
+   *                 enum: [Pending, "In Progress", Completed, Cancelled]
+   *                 example: "Pending"
+   *               priority:
+   *                 type: string
+   *                 enum: [Low, Medium, High]
+   *                 example: "Medium"
+   *               tags:
+   *                 type: string
+   *                 example: "documentation,urgent"
+   *               attachments:
+   *                 type: array
+   *                 items:
+   *                   type: string
+   *                   format: binary
+   *                 description: Files to attach to the task (up to 10 files)
+   *     responses:
+   *       201:
+   *         $ref: '#/components/responses/CreatedResponse'
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedResponse'
+   *       400:
+   *         $ref: '#/components/responses/BadRequestResponse'
+   */
   createTask = errorMiddleware.catchAsync(async (req: Request, res: Response) => {
     const { title, description, dueDate, status, priority, tags, assignedTo } = req.body;
     const userId = req.user?.id;
@@ -89,13 +145,33 @@ export class TaskController {
       // Don't fail the request if WebSocket fails - this is expected when SocketIO is not configured
     }
 
-    res.status(APP_CONSTANTS.HTTP_STATUS.CREATED).json({
-      success: true,
-      message: 'Task created successfully',
-      data: result,
-    });
+    ResponseUtil.created(res, result, 'Task created successfully');
   });
 
+  /**
+   * @swagger
+   * /api/v1/tasks:
+   *   get:
+   *     tags:
+   *       - Tasks
+   *     summary: Get tasks list
+   *     description: Retrieve a paginated list of tasks with optional filtering
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/PageParameter'
+   *       - $ref: '#/components/parameters/LimitParameter'
+   *       - $ref: '#/components/parameters/StatusFilterParameter'
+   *       - $ref: '#/components/parameters/StartDateFilterParameter'
+   *       - $ref: '#/components/parameters/EndDateFilterParameter'
+   *       - $ref: '#/components/parameters/SortByParameter'
+   *       - $ref: '#/components/parameters/SortOrderParameter'
+   *     responses:
+   *       200:
+   *         $ref: '#/components/responses/TaskListResponse'
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedResponse'
+   */
   getTasks = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
     const userId = req.user?.id;
     const userRole = req.user?.role ?? 'user';
@@ -121,22 +197,35 @@ export class TaskController {
 
     const result = await this.listTasksUseCase.execute(userId, userRole, filters);
 
-    res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
-      success: true,
-      message: 'Tasks retrieved successfully',
-      data: result,
-    });
+    ResponseUtil.success(res, result, 'Tasks retrieved successfully');
   });
 
+  /**
+   * @swagger
+   * /api/v1/tasks/{id}:
+   *   get:
+   *     tags:
+   *       - Tasks
+   *     summary: Get task by ID
+   *     description: Retrieve a specific task by its ID
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/TaskIdParameter'
+   *     responses:
+   *       200:
+   *         $ref: '#/components/responses/TaskResponse'
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedResponse'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundResponse'
+   */
   getTaskById = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
-        success: false,
-        message: 'User not authenticated',
-      });
+      ResponseUtil.unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -145,13 +234,65 @@ export class TaskController {
       userId,
     });
 
-    res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
-      success: true,
-      message: 'Task retrieved successfully',
-      data: result,
-    });
+    ResponseUtil.success(res, result, 'Task retrieved successfully');
   });
 
+  /**
+   * @swagger
+   * /api/v1/tasks/{id}:
+   *   post:
+   *     tags:
+   *       - Tasks
+   *     summary: Update task
+   *     description: Update an existing task with optional file attachments
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/TaskIdParameter'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         multipart/form-data:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               title:
+   *                 type: string
+   *                 example: "Complete project documentation"
+   *               description:
+   *                 type: string
+   *                 example: "Write comprehensive documentation for the new API endpoints"
+   *               status:
+   *                 type: string
+   *                 enum: [Pending, "In Progress", Completed, Cancelled]
+   *                 example: "In Progress"
+   *               dueDate:
+   *                 type: string
+   *                 format: date
+   *                 example: "2023-12-31"
+   *               priority:
+   *                 type: string
+   *                 enum: [Low, Medium, High]
+   *                 example: "High"
+   *               tags:
+   *                 type: string
+   *                 example: "documentation,urgent"
+   *               attachments:
+   *                 type: array
+   *                 items:
+   *                   type: string
+   *                   format: binary
+   *                 description: Files to attach to the task (up to 10 files)
+   *     responses:
+   *       200:
+   *         $ref: '#/components/responses/TaskResponse'
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedResponse'
+   *       400:
+   *         $ref: '#/components/responses/BadRequestResponse'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundResponse'
+   */
   updateTask = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const { title, description, status, dueDate, priority, tags, attachments } = req.body;
@@ -159,18 +300,12 @@ export class TaskController {
     const files = req.files as Express.Multer.File[];
 
     if (!userId) {
-      res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
-        success: false,
-        message: 'User not authenticated',
-      });
+      ResponseUtil.unauthorized(res, 'User not authenticated');
       return;
     }
 
     if (!id) {
-      res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: 'Task ID is required',
-      });
+      ResponseUtil.badRequest(res, 'Task ID is required');
       return;
     }
 
@@ -189,59 +324,80 @@ export class TaskController {
       files
     );
 
-    res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
-      success: true,
-      message: 'Task updated successfully',
-      data: result,
-    });
+    ResponseUtil.success(res, result, 'Task updated successfully');
   });
 
+  /**
+   * @swagger
+   * /api/v1/tasks/{id}:
+   *   delete:
+   *     tags:
+   *       - Tasks
+   *     summary: Delete task
+   *     description: Delete a specific task by its ID
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/TaskIdParameter'
+   *     responses:
+   *       200:
+   *         $ref: '#/components/responses/SuccessResponse'
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedResponse'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundResponse'
+   */
   deleteTask = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
-        success: false,
-        message: 'User not authenticated',
-      });
+      ResponseUtil.unauthorized(res, 'User not authenticated');
       return;
     }
 
     if (!id) {
-      res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: 'Task ID is required',
-      });
+      ResponseUtil.badRequest(res, 'Task ID is required');
       return;
     }
 
     const result = await this.deleteTaskUseCase.execute(id, userId);
 
-    res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
-      success: true,
-      message: result.message,
-    });
+    ResponseUtil.success(res, undefined, result.message);
   });
 
+  /**
+   * @swagger
+   * /api/v1/tasks/{id}/completed:
+   *   patch:
+   *     tags:
+   *       - Tasks
+   *     summary: Mark task as completed
+   *     description: Mark a specific task as completed
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/TaskIdParameter'
+   *     responses:
+   *       200:
+   *         $ref: '#/components/responses/TaskResponse'
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedResponse'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundResponse'
+   */
   markTaskComplete = errorMiddleware.catchAsync(
     async (req: Request, res: Response): Promise<void> => {
       const { id } = req.params;
       const userId = req.user?.id;
 
       if (!userId) {
-        res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
-          success: false,
-          message: 'User not authenticated',
-        });
+        ResponseUtil.unauthorized(res, 'User not authenticated');
         return;
       }
 
       if (!id) {
-        res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
-          success: false,
-          message: 'Task ID is required',
-        });
+        ResponseUtil.badRequest(res, 'Task ID is required');
         return;
       }
 
@@ -282,32 +438,42 @@ export class TaskController {
         // Don't fail the request if WebSocket fails - this is expected when SocketIO is not configured
       }
 
-      res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
-        success: true,
-        message: 'Task marked as completed',
-        data: result,
-      });
+      ResponseUtil.success(res, result, 'Task marked as completed');
     }
   );
 
+  /**
+   * @swagger
+   * /api/v1/tasks/{id}/pending:
+   *   patch:
+   *     tags:
+   *       - Tasks
+   *     summary: Mark task as pending
+   *     description: Mark a specific task as pending
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/TaskIdParameter'
+   *     responses:
+   *       200:
+   *         $ref: '#/components/responses/TaskResponse'
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedResponse'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundResponse'
+   */
   markTaskPending = errorMiddleware.catchAsync(
     async (req: Request, res: Response): Promise<void> => {
       const { id } = req.params;
       const userId = req.user?.id;
 
       if (!userId) {
-        res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
-          success: false,
-          message: 'User not authenticated',
-        });
+        ResponseUtil.unauthorized(res, 'User not authenticated');
         return;
       }
 
       if (!id) {
-        res.status(APP_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({
-          success: false,
-          message: 'Task ID is required',
-        });
+        ResponseUtil.badRequest(res, 'Task ID is required');
         return;
       }
 
@@ -320,23 +486,32 @@ export class TaskController {
         []
       );
 
-      res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
-        success: true,
-        message: 'Task marked as pending',
-        data: result,
-      });
+      ResponseUtil.success(res, result, 'Task marked as pending');
     }
   );
 
+  /**
+   * @swagger
+   * /api/v1/tasks/stats:
+   *   get:
+   *     tags:
+   *       - Tasks
+   *     summary: Get task statistics
+   *     description: Retrieve task statistics for the authenticated user
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         $ref: '#/components/responses/TaskStatsResponse'
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedResponse'
+   */
   getTaskStats = errorMiddleware.catchAsync(async (req: Request, res: Response): Promise<void> => {
     const userId = req.user?.id;
     const userRole = req.user?.role ?? 'user';
-
+    console.log('Getting stats for user:', userId, 'with role:', userRole);
     if (!userId) {
-      res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
-        success: false,
-        message: 'User not authenticated',
-      });
+      ResponseUtil.unauthorized(res, 'User not authenticated');
       return;
     }
 
@@ -345,32 +520,46 @@ export class TaskController {
       userRole,
     });
 
-    res.status(APP_CONSTANTS.HTTP_STATUS.OK).json({
-      success: true,
-      message: 'Task statistics retrieved successfully',
-      data: result,
-    });
+    ResponseUtil.success(res, result, 'Task statistics retrieved successfully');
   });
 
+  /**
+   * @swagger
+   * /api/v1/tasks/attachments/{userId}/{taskId}/{filename}:
+   *   get:
+   *     tags:
+   *       - Tasks
+   *     summary: Serve task attachment
+   *     description: Serve a file attachment for a specific task (users can only access their own files)
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/UserIdParameter'
+   *       - $ref: '#/components/parameters/TaskIdParameter'
+   *       - $ref: '#/components/parameters/FilenameParameter'
+   *     responses:
+   *       200:
+   *         $ref: '#/components/responses/FileResponse'
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedResponse'
+   *       403:
+   *         $ref: '#/components/responses/ForbiddenResponse'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundResponse'
+   */
   serveAttachment = errorMiddleware.catchAsync(
     async (req: Request, res: Response): Promise<void> => {
       const { userId, taskId, filename } = req.params;
       const requestingUserId = req.user?.id;
 
       if (!requestingUserId) {
-        res.status(APP_CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
-          success: false,
-          message: 'User not authenticated',
-        });
+        ResponseUtil.unauthorized(res, 'User not authenticated');
         return;
       }
 
       // Basic security check - ensure user can only access their own files
       if (requestingUserId !== userId) {
-        res.status(APP_CONSTANTS.HTTP_STATUS.FORBIDDEN).json({
-          success: false,
-          message: 'Access denied',
-        });
+        ResponseUtil.forbidden(res, 'Access denied');
         return;
       }
 
@@ -379,10 +568,7 @@ export class TaskController {
 
       // Check if file exists
       if (!fs.existsSync(filePath)) {
-        res.status(APP_CONSTANTS.HTTP_STATUS.NOT_FOUND).json({
-          success: false,
-          message: 'File not found',
-        });
+        ResponseUtil.notFound(res, 'File not found');
         return;
       }
 
@@ -410,15 +596,36 @@ export class TaskController {
       res.sendFile(filePath, err => {
         if (err) {
           console.error('Error serving file:', err);
-          res.status(APP_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: 'Error serving file',
-          });
+          ResponseUtil.error(res, 'Error serving file');
         }
       });
     }
   );
 
+  /**
+   * @swagger
+   * /api/v1/tasks/export/csv:
+   *   get:
+   *     tags:
+   *       - Tasks
+   *     summary: Export tasks to CSV
+   *     description: Export tasks to CSV format with optional filtering
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - $ref: '#/components/parameters/StatusFilterParameter'
+   *       - $ref: '#/components/parameters/StartDateFilterParameter'
+   *       - $ref: '#/components/parameters/EndDateFilterParameter'
+   *     responses:
+   *       200:
+   *         $ref: '#/components/responses/CSVResponse'
+   *       401:
+   *         $ref: '#/components/responses/UnauthorizedResponse'
+   *       404:
+   *         $ref: '#/components/responses/NotFoundResponse'
+   *       500:
+   *         description: Internal server error - failed to export CSV
+   */
   exportTasksToCSV = errorMiddleware.catchAsync(
     async (req: Request, res: Response): Promise<void> => {
       const userId = req.user?.id;
@@ -446,10 +653,7 @@ export class TaskController {
         const result = await this.listTasksUseCase.execute(userId, userRole, filters);
 
         if (!result.tasks || result.tasks.length === 0) {
-          res.status(APP_CONSTANTS.HTTP_STATUS.NOT_FOUND).json({
-            success: false,
-            message: 'No tasks found to export',
-          });
+          ResponseUtil.notFound(res, 'No tasks found to export');
           return;
         }
 
@@ -515,11 +719,12 @@ export class TaskController {
         fs.unlinkSync(filePath);
       } catch (error) {
         console.error('CSV export error:', error);
-        res.status(APP_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-          success: false,
-          message: 'Failed to export tasks to CSV',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        ResponseUtil.error(
+          res,
+          'Failed to export tasks to CSV',
+          APP_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          error instanceof Error ? error.message : 'Unknown error'
+        );
       }
     }
   );

@@ -1,24 +1,10 @@
-import { ITaskRepository } from '../../../../domain/repositories/task.repository';
-import { IUserRepository } from '../../../../domain/repositories/user.repository';
-import { TaskRepositoryImpl } from '../../../../infrastructure/repositories/task.repository.impl';
-import { UserRepositoryImpl } from '../../../../infrastructure/repositories/user.repository.impl';
 import { ForgotPasswordDto } from '../../../dtos/user.dto';
 import { AuthService } from '../../../services/auth.service';
-import { RedisService } from '../../../../infrastructure/services/redis.service';
-import { EmailService } from '../../../../infrastructure/services/email.service';
 
 export class ForgotPasswordUseCase {
   private authService: AuthService;
-
-  constructor(
-    userRepository?: IUserRepository,
-    taskRepository?: ITaskRepository,
-    redisService?: RedisService,
-    emailService?: EmailService
-  ) {
-    const userRepo = userRepository ?? new UserRepositoryImpl();
-    const taskRepo = taskRepository ?? new TaskRepositoryImpl();
-    this.authService = new AuthService(userRepo, taskRepo, redisService, emailService);
+  constructor() {
+    this.authService = new AuthService();
   }
 
   async execute(

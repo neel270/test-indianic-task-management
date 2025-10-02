@@ -1,6 +1,4 @@
-import { IUserRepository } from '../../../domain/repositories/user.repository';
-import { UserRepositoryImpl } from '../../../infrastructure/repositories/user.repository.impl';
-import { PasswordUtil } from '../../../infrastructure/utils/password.util';
+import { UserService } from '../../../application/services/user.service';
 
 export interface ChangePasswordDto {
   currentPassword: string;
@@ -8,10 +6,10 @@ export interface ChangePasswordDto {
 }
 
 export class ChangePasswordUseCase {
-  private userRepository: IUserRepository;
+  private userService: UserService;
 
-  constructor(userRepository?: IUserRepository) {
-    this.userRepository = userRepository ?? new UserRepositoryImpl();
+  constructor() {
+    this.userService = new UserService();
   }
 
   async execute(userId: string, passwordData: ChangePasswordDto): Promise<{ message: string }> {
@@ -25,29 +23,12 @@ export class ChangePasswordUseCase {
         throw new Error('New password must be different from current password');
       }
 
-      // Get user from database
-      const user = await this.userRepository.findById(userId);
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      // Verify current password
-      const isCurrentPasswordValid = await PasswordUtil.compare(
+      // Use UserService to change password
+      await this.userService.changePassword(
+        userId,
         passwordData.currentPassword,
-        user.password
+        passwordData.newPassword
       );
-
-      if (!isCurrentPasswordValid) {
-        throw new Error('Current password is incorrect');
-      }
-
-      // Hash new password
-      const hashedNewPassword = await PasswordUtil.hash(passwordData.newPassword);
-
-      // Update password in database
-      await this.userRepository.update(userId, {
-        password: hashedNewPassword,
-      });
 
       return {
         message: 'Password changed successfully',

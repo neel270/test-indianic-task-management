@@ -63,7 +63,7 @@ export const createRateLimit = (config: RateLimitConfig = {}) => {
 
   return (req: Request, res: Response, next: NextFunction) => {
     // Generate key based on IP and optionally user ID
-    const key = req.ip || req.connection.remoteAddress || 'unknown';
+    const key = req.ip ?? req.connection.remoteAddress ?? 'unknown';
     const userKey = req.headers.authorization ? `${key}:authenticated` : `${key}:anonymous`;
 
     const { count, resetTime } = store.increment(userKey);
@@ -117,14 +117,14 @@ export const generalRateLimit = createRateLimit({
   message: 'Too many requests from this IP, please try again later.',
 });
 
-export const strictRateLimit = createRateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 20, // 20 requests per 15 minutes
-  message: 'Rate limit exceeded for this endpoint.',
-});
-
 export const authRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 5, // 5 auth attempts per 15 minutes
+  maxRequests: 5, // 5 auth requests per 15 minutes
   message: 'Too many authentication attempts, please try again later.',
+});
+
+export const strictRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 50, // 50 requests per 15 minutes (stricter than general)
+  message: 'Too many requests, please try again later.',
 });

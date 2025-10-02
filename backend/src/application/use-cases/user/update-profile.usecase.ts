@@ -1,5 +1,4 @@
-import { IUserRepository } from '../../../domain/repositories/user.repository';
-import { UserRepositoryImpl } from '../../../infrastructure/repositories/user.repository.impl';
+import { UserService } from '../../../application/services/user.service';
 
 export interface UpdateProfileDto {
   firstName?: string;
@@ -8,10 +7,10 @@ export interface UpdateProfileDto {
 }
 
 export class UpdateProfileUseCase {
-  private userRepository: IUserRepository;
+  private userService: UserService;
 
-  constructor(userRepository?: IUserRepository) {
-    this.userRepository = userRepository ?? new UserRepositoryImpl();
+  constructor() {
+    this.userService = new UserService();
   }
 
   async execute(
@@ -32,22 +31,22 @@ export class UpdateProfileUseCase {
         throw new Error('At least one field must be provided for update');
       }
 
-      // Check if user exists
-      const existingUser = await this.userRepository.findById(userId);
-      if (!existingUser) {
-        throw new Error('User not found');
+      // Prepare data for UserService (combine firstName and lastName into name if needed)
+      const serviceUpdateData: any = {};
+
+      if (updateData.firstName !== undefined) {
+        serviceUpdateData.name = updateData.firstName;
+      }
+      if (updateData.lastName !== undefined) {
+        const currentName = updateData.firstName ?? '';
+        serviceUpdateData.name = `${currentName} ${updateData.lastName}`.trim();
+      }
+      if (updateData.email !== undefined) {
+        serviceUpdateData.email = updateData.email;
       }
 
-      // If email is being updated, check if it's already taken by another user
-      if (updateData.email && updateData.email !== existingUser.email) {
-        const emailExists = await this.userRepository.findByEmail(updateData.email);
-        if (emailExists) {
-          throw new Error('Email is already registered to another account');
-        }
-      }
-
-      // Update the user
-      const updatedUser = await this.userRepository.update(userId, updateData);
+      // Use UserService to update user
+      const updatedUser = await this.userService.updateUser(userId, serviceUpdateData);
 
       return {
         id: updatedUser.id,

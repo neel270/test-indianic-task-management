@@ -2,6 +2,13 @@ import { Router } from 'express';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 import { UserController } from '../controllers/user.controller';
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Users
+ *     description: User management endpoints (Admin only)
+ */
+
 export const createUserRoutes = (): Router => {
   const router = Router();
 
@@ -13,14 +20,14 @@ export const createUserRoutes = (): Router => {
     '/users',
     (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
     authMiddleware.adminOnly,
-    userController.listUsers.bind(userController)
+    (req, res, next) => void userController.listUsers(req, res).catch(next)
   );
 
   router.put(
     '/users/:id/status',
     (req, res, next) => void authMiddleware.authenticate(req, res, next).catch(next),
     authMiddleware.adminOnly,
-    userController.toggleUserStatus.bind(userController)
+    (req, res, next) => void userController.toggleUserStatus(req, res).catch(next)
   );
 
   return router;

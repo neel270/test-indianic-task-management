@@ -1,5 +1,4 @@
-import { ITaskRepository } from '../../../domain/repositories/task.repository';
-import { TaskRepositoryImpl } from '../../../infrastructure/repositories/task.repository.impl';
+import { TaskService } from '../../../application/services/task.service';
 
 export interface GetTaskByIdUseCaseInput {
   id: string;
@@ -7,10 +6,10 @@ export interface GetTaskByIdUseCaseInput {
 }
 
 export class GetTaskByIdUseCase {
-  private taskRepository: ITaskRepository;
+  private taskService: TaskService;
 
   constructor() {
-    this.taskRepository = new TaskRepositoryImpl();
+    this.taskService = new TaskService();
   }
 
   async execute(input: GetTaskByIdUseCaseInput) {
@@ -24,16 +23,8 @@ export class GetTaskByIdUseCase {
       throw new Error('User ID is required');
     }
 
-    const task = await this.taskRepository.findById(id);
-    console.log('Fetched task:', task?.userId.toString(), 'for userId:', userId);
-    if (!task) {
-      throw new Error('Task not found');
-    }
-
-    // Check if user has permission to view this task
-    if (task.userId.toString() !== userId) {
-      throw new Error('Access denied: You do not have permission to view this task');
-    }
+    // Use TaskService to get task by ID with user permission check
+    const task = await this.taskService.getTaskById(id, userId);
 
     return task;
   }

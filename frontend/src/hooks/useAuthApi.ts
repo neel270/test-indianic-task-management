@@ -11,6 +11,7 @@ import {
 } from '../store/slices/authSlice';
 import apiClient, { setAuthToken } from '@/lib/axios';
 import { toastError, toastSuccess } from './use-toast';
+import { logger } from '@/lib/logger';
 
 // Types
 interface LoginRequest {
@@ -252,6 +253,53 @@ export const useUpdateProfile = () => {
     onError: (error: Error) => {
       dispatch(updateProfileFailure(error.message || 'Failed to update profile'));
       toastError(error.message || 'Failed to update profile');
+    },
+  });
+};
+
+// Profile image upload hook
+export const useUploadProfileImage = () => {
+  const queryClient = useQueryClient();
+  const dispatch = useAppDispatch();
+
+  return useMutation({
+    mutationFn: async (file: File): Promise<{ success: boolean; data?: { imageUrl: string }; message?: string }> => {
+      const formData = new FormData();
+      formData.append('profileImage', file);
+
+      const response = await apiClient.post<{ success: boolean; data?: { imageUrl: string }; message?: string }>(
+        '/auth/upload-profile-image',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      return response.data;
+    },
+    onSuccess: (data, file) => {
+      if (data.success && data.data?.imageUrl) {
+        toastSuccess('Profile image updated successfully!');
+
+        // Update React Query cache
+        queryClient.invalidateQueries({ queryKey: ['auth', 'profile'] });
+        queryClient.invalidateQueries({ queryKey: ['auth', 'user'] });
+
+        logger.info('Profile image upload completed', {
+          fileName: file.name,
+          fileSize: file.size,
+          imageUrl: data.data.imageUrl
+        });
+      }
+    },
+    onError: (error: Error, file) => {
+      toastError(error.message || 'Failed to upload image');
+      logger.error('Profile image upload failed', {
+        error: error.message,
+        fileName: file.name,
+        fileSize: file.size
+      });
     },
   });
 };

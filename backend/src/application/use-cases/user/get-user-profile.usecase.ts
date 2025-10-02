@@ -1,15 +1,14 @@
-import { IUserRepository } from '../../../domain/repositories/user.repository';
-import { UserRepositoryImpl } from '../../../infrastructure/repositories/user.repository.impl';
+import { UserService } from '../../../application/services/user.service';
 
 export interface GetUserProfileDto {
   userId: string;
 }
 
 export class GetUserProfileUseCase {
-  private userRepository: IUserRepository;
+  private userService: UserService;
 
-  constructor(userRepository?: IUserRepository) {
-    this.userRepository = userRepository ?? new UserRepositoryImpl();
+  constructor() {
+    this.userService = new UserService();
   }
 
   async execute(data: GetUserProfileDto): Promise<{
@@ -23,11 +22,8 @@ export class GetUserProfileUseCase {
     updatedAt: Date;
   }> {
     try {
-      const user = await this.userRepository.findById(data.userId);
-
-      if (!user) {
-        throw new Error('User not found');
-      }
+      // Use UserService to get user by ID
+      const user = await this.userService.getUserById(data.userId);
 
       return {
         id: user.id,

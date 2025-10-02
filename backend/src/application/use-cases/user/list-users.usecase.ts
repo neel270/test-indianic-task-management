@@ -1,14 +1,11 @@
-import { IUserRepository } from '../../../domain/repositories/user.repository';
-import { UserRepositoryImpl } from '../../../infrastructure/repositories/user.repository.impl';
 import { UserFiltersDto } from '../../dtos/user.dto';
 import { PaginatedUsersResult, UserService } from '../../services/user.service';
 
 export class ListUsersUseCase {
   private userService: UserService;
 
-  constructor(userRepository?: IUserRepository) {
-    const userRepo = userRepository ?? new UserRepositoryImpl();
-    this.userService = new UserService(userRepo);
+  constructor() {
+    this.userService = new UserService();
   }
 
   async execute(

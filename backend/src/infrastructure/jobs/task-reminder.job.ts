@@ -1,9 +1,5 @@
 import * as cron from 'node-cron';
 import { TaskService } from '../../application/services/task.service';
-import { ITaskRepository } from '../../domain/repositories/task.repository';
-import { IUserRepository } from '../../domain/repositories/user.repository';
-import { TaskRepositoryImpl } from '../repositories/task.repository.impl';
-import { UserRepositoryImpl } from '../repositories/user.repository.impl';
 import { TaskSocket } from '../sockets/task.socket';
 import { EmailService } from '../services/email.service';
 
@@ -24,16 +20,13 @@ export class TaskReminderJob {
   private jobs: cron.ScheduledTask[] = [];
 
   constructor(taskSocket: TaskSocket, config?: Partial<TaskReminderConfig>) {
-    this.taskService = new TaskService(
-      new TaskRepositoryImpl() as ITaskRepository,
-      new UserRepositoryImpl() as IUserRepository
-    );
+    this.taskService = new TaskService();
     this.taskSocket = taskSocket;
     this.emailService = new EmailService();
 
     this.config = {
       enabled: true,
-      checkInterval: '0 */6 * * *', // Every 6 hours
+      checkInterval: '0 8 * * *', // Daily at 8 AM
       reminderTimes: [24, 12, 6, 1], // 24h, 12h, 6h, 1h before due
       emailEnabled: true,
       socketEnabled: true,
@@ -56,7 +49,7 @@ export class TaskReminderJob {
     const mainJob = cron.schedule(
       this.config.checkInterval,
       () => {
-        this.checkAndSendReminders();
+        void this.checkAndSendReminders();
       },
       {
         scheduled: false,
@@ -70,7 +63,7 @@ export class TaskReminderJob {
     const immediateJob = cron.schedule(
       '*/15 * * * *',
       () => {
-        this.checkImmediateReminders();
+        void this.checkImmediateReminders();
       },
       {
         scheduled: false,

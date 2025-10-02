@@ -1,5 +1,4 @@
-import { IUserRepository } from '../../../domain/repositories/user.repository';
-import { UserRepositoryImpl } from '../../../infrastructure/repositories/user.repository.impl';
+import { UserService } from '../../../application/services/user.service';
 import { ImageService } from '../../../infrastructure/services/image.service';
 
 export interface UploadProfileImageDto {
@@ -13,12 +12,12 @@ export interface UploadProfileImageDto {
 }
 
 export class UploadProfileImageUseCase {
-  private userRepository: IUserRepository;
+  private userService: UserService;
   private imageService: ImageService;
 
-  constructor(userRepository?: IUserRepository, imageService?: ImageService) {
-    this.userRepository = userRepository ?? new UserRepositoryImpl();
-    this.imageService = imageService ?? new ImageService();
+  constructor() {
+    this.userService = new UserService();
+    this.imageService = new ImageService();
   }
 
   async execute(data: UploadProfileImageDto): Promise<{
@@ -28,20 +27,14 @@ export class UploadProfileImageUseCase {
     mimetype: string;
   }> {
     try {
-      // Verify user exists
-      const user = await this.userRepository.findById(data.userId);
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      // Process and resize the image
+      // Process and resize the image first
       await this.imageService.resizeProfileImage(data.file.path, data.userId);
 
       // Generate image URL
       const imageUrl = `/uploads/profiles/${data.userId}/${data.file.originalname}`;
 
-      // Update user profile with new image path
-      await this.userRepository.updateProfileImage(data.userId, imageUrl);
+      // Use UserService to update user profile with new image path
+      await this.userService.updateProfileImage(data.userId, imageUrl);
 
       return {
         imageUrl,
@@ -51,7 +44,9 @@ export class UploadProfileImageUseCase {
       };
     } catch (error) {
       throw new Error(
-        `Failed to upload profile image: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to upload profile image: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
       );
     }
   }

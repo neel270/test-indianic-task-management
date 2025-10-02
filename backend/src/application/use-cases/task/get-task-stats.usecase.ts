@@ -1,5 +1,4 @@
-import { ITaskRepository } from '../../../domain/repositories/task.repository';
-import { TaskRepositoryImpl } from '../../../infrastructure/repositories/task.repository.impl';
+import { TaskService } from '../../../application/services/task.service';
 
 export interface TaskStats {
   totalTasks: number;
@@ -10,16 +9,15 @@ export interface TaskStats {
 }
 
 export interface GetTaskStatsUseCaseInput {
-  userId: string;
-  userRole: string;
+  userId?: string;
+  userRole?: string;
 }
 
 export class GetTaskStatsUseCase {
-  private taskRepository: ITaskRepository;
-  private readonly maxTasksForStats: number = 10000; // Maximum tasks to fetch for statistics
+  private taskService: TaskService;
 
   constructor() {
-    this.taskRepository = new TaskRepositoryImpl();
+    this.taskService = new TaskService();
   }
 
   async execute(input: GetTaskStatsUseCaseInput): Promise<TaskStats> {
@@ -30,29 +28,15 @@ export class GetTaskStatsUseCase {
     }
 
     try {
-      // Get all tasks for the user
-      const result = await this.taskRepository.findByUserId(userId, 1, this.maxTasksForStats); // Get all tasks
-      const tasks = result.tasks;
-
-      const totalTasks = tasks.length;
-      const completedTasks = tasks.filter(task => task.status === 'Completed').length;
-      const pendingTasks = tasks.filter(task => task.status === 'Pending').length;
-
-      // Calculate overdue tasks
-      const now = new Date();
-      const overdueTasks = tasks.filter(
-        task => task.dueDate && new Date(task.dueDate) < now && task.status !== 'Completed'
-      ).length;
-
-      // Calculate completion rate
-      const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+      // Use TaskService to get task statistics
+      const stats = await this.taskService.getTaskStats(userId);
 
       return {
-        totalTasks,
-        completedTasks,
-        pendingTasks,
-        overdueTasks,
-        completionRate: Math.round(completionRate * 100) / 100, // Round to 2 decimal places
+        totalTasks: stats.totalTasks,
+        completedTasks: stats.completedTasks,
+        pendingTasks: stats.pendingTasks,
+        overdueTasks: stats.overdueTasks,
+        completionRate: stats.completionRate,
       };
     } catch (error) {
       throw new Error(

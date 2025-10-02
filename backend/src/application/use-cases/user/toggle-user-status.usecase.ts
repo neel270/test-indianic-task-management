@@ -1,14 +1,11 @@
 import { UserEntity } from '../../../domain/entities';
-import { IUserRepository } from '../../../domain/repositories/user.repository';
-import { UserRepositoryImpl } from '../../../infrastructure/repositories/user.repository.impl';
 import { UserService } from '../../services/user.service';
 
 export class ToggleUserStatusUseCase {
   private userService: UserService;
 
-  constructor(userRepository?: IUserRepository) {
-    const userRepo = userRepository ?? new UserRepositoryImpl();
-    this.userService = new UserService(userRepo);
+  constructor() {
+    this.userService = new UserService();
   }
 
   async execute(userId: string, requesterRole: string, requesterId: string): Promise<UserEntity> {
