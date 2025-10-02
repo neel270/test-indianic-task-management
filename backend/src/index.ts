@@ -5,7 +5,7 @@ import { initializeDatabase } from './infrastructure/database';
 import { Server } from './server';
 
 // Load environment variables from root .env file
-dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 async function bootstrap(): Promise<void> {
   try {

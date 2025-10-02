@@ -12,20 +12,17 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
-import { useToast } from '../hooks/use-toast';
+import { useLogout } from '../hooks/useAuthApi';
 import { useAppSelector } from '@/store/hooks';
 import { selectUser } from '@/store/slices/authSlice';
 
 const MainLayout: React.FC = () => {
-  const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const user = useAppSelector(selectUser);
+  const logoutMutation = useLogout();
 
   const handleLogout = () => {
-    toast({
-      title: 'Logged out',
-      description: 'You have been successfully logged out.',
-    });
+    logoutMutation.mutate();
   };
 
   const navigation = [

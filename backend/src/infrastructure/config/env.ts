@@ -12,8 +12,6 @@ export interface EnvironmentConfig {
   mongodbUri: string;
   mongodbDbName?: string;
   redisUrl: string;
-  emailServiceApiKey?: string;
-  emailServiceUrl?: string;
   maxFileSize: number;
   allowedOrigins: string;
   logLevel: string;
@@ -30,8 +28,7 @@ export interface EnvironmentConfig {
   emailPassword: string;
   emailFrom: string;
 }
-dotenv.config({ path: path.resolve(process.cwd(), '../../../../.env') });
-
+dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 export const env: EnvironmentConfig = {
   port: parseInt(process.env.PORT ?? '5000', 10),
   nodeEnv: process.env.NODE_ENV ?? 'development',
@@ -41,10 +38,8 @@ export const env: EnvironmentConfig = {
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
   refreshTokenExpiresIn: process.env.JWT_EXPIRE ?? '7d',
   mongodbUri: process.env.MONGODB_URI ?? 'mongodb://localhost:27017/task_management',
-  mongodbDbName: process.env.MONGODB_DB_NAME ?? 'task_management',
+  mongodbDbName: process.env.MONGO_DATABASE ?? 'task_management',
   redisUrl: process.env.REDIS_URL ?? '',
-  emailServiceApiKey: process.env.EMAIL_SERVICE_API_KEY,
-  emailServiceUrl: process.env.EMAIL_SERVICE_URL,
   maxFileSize: process.env.MAX_FILE_SIZE ? parseInt(process.env.MAX_FILE_SIZE, 10) : 10485760,
   allowedOrigins: process.env.ALLOWED_ORIGINS ?? '',
   logLevel: process.env.LOG_LEVEL ?? 'info',

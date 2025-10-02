@@ -24,6 +24,7 @@ interface SocketContextType {
   onTaskCreated: (callback: (task: unknown) => void) => void;
   onTaskUpdated: (callback: (task: unknown) => void) => void;
   onTaskDeleted: (callback: (task: unknown) => void) => void;
+  onTaskStatusChanged: (callback: (data: { id: string; status: string; title?: string }) => void) => void;
   onTaskAssigned: (callback: (data: unknown) => void) => void;
 
   // User status events
@@ -104,6 +105,16 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     },
   });
 
+  // Auto-authenticate socket when connected and token is available
+  useEffect(() => {
+    if (isConnected && !_isAuthenticatedSocket) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        emit('authenticate', token);
+      }
+    }
+  }, [isConnected, _isAuthenticatedSocket, emit]);
+
   // Handle authentication response
   useEffect(() => {
     socketOn('authenticated', (data: unknown) => {
@@ -160,6 +171,12 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     on('task_deleted', callback);
   };
 
+  const onTaskStatusChanged = (callback: (data: { id: string; status: string; title?: string }) => void) => {
+    on('task_status_changed', (data: unknown) => {
+      callback(data as { id: string; status: string; title?: string });
+    });
+  };
+
   const onTaskAssigned = (callback: (data: unknown) => void) => {
     on('task_assigned', callback);
   };
@@ -204,6 +221,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     onTaskCreated,
     onTaskUpdated,
     onTaskDeleted,
+    onTaskStatusChanged,
     onTaskAssigned,
     onUserOnline,
     onUserOffline,

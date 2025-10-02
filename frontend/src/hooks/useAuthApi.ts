@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
 import {
   loginStart,
@@ -83,7 +84,6 @@ export const useLogin = () => {
 
       // Update Redux state
       dispatch(loginSuccess({ user: data.data.user, token: data.data.tokens.accessToken }));
- console.log(data);
 
       // Update auth state in React Query cache
       queryClient.setQueryData(['auth', 'user'], data.data.user);
@@ -122,23 +122,39 @@ export const useRegister = () => {
 export const useLogout = () => {
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: async (): Promise<void> => {
-      await apiClient.post('/auth/logout');
+      try {
+        await apiClient.post('/auth/logout');
+      } catch (error) {
+        // Continue with logout even if API call fails
+        logger.warn('Logout API call failed, but continuing with local logout');
+      }
     },
     onSettled: () => {
-      // Clear token from localStorage and API client
-      localStorage.removeItem('authToken');
+      // Clear all persisted Redux data (redux-persist)
+      localStorage.removeItem('task-management-front');
+
+      // Clear all auth-related localStorage items consistently
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('authToken'); // Keep for backward compatibility
       localStorage.removeItem('user');
       setAuthToken('');
 
       // Update Redux state
       dispatch(logout());
 
-      // Clear auth state from React Query cache
-      queryClient.removeQueries({ queryKey: ['auth'] });
+      // Clear all React Query cache to ensure clean state
       queryClient.clear();
+
+      // Show success message
+      toastSuccess('Logged out successfully');
+
+      // Navigate to login screen
+      navigate('/login', { replace: true });
     },
   });
 };
@@ -150,7 +166,6 @@ export const useGetProfile = () => {
       const response = await apiClient.get('/auth/profile');
       return response.data;
     },
-    enabled: !!localStorage.getItem('authToken'),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };

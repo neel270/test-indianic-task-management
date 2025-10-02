@@ -97,6 +97,7 @@ export class UpdateTaskUseCase {
           dueDate: task.dueDate,
           priority: task.priority,
           userEmail: task.assignedTo, // This should be the assigned user's email
+          status: task.status,
         };
 
         // Emit socket event for real-time updates
@@ -114,6 +115,19 @@ export class UpdateTaskUseCase {
           updatedAt: task.updatedAt,
           updatedBy: userId,
         });
+
+        // Emit specific task status change event if status was updated
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (taskData.status !== undefined && (existingTask as any).status !== task.status) {
+          this.taskSocket.emitTaskUpdateToAll('task_status_changed', {
+            id: task.id,
+            title: task.title,
+            status: task.status,
+            previousStatus: existingTask.status,
+            changedBy: userId,
+            changedAt: task.updatedAt,
+          });
+        }
 
         // Send email notification if task is completed
         if (task.status === 'Completed' && existingTask.status !== 'Completed') {

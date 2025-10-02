@@ -32,10 +32,11 @@ import { toast } from '../../hooks/use-toast';
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const user = useAppSelector(selectUser);
-  const { stats, recentTasks, overdueTasks, isLoading, isAuthenticated, isSocketConnected } = useDashboardData();
+  const { stats, recentTasks, overdueTasks, isLoading, isAuthenticated, isSocketConnected } =
+    useDashboardData();
 
   // Socket integration for real-time notifications
-  const { onTaskCreated, onTaskUpdated, onNotification } = useSocketContext();
+  const { onTaskCreated, onTaskUpdated, onTaskStatusChanged, onNotification } = useSocketContext();
 
   // Set up real-time notifications
   useEffect(() => {
@@ -58,6 +59,48 @@ const Dashboard: React.FC = () => {
           description: `"${taskData.title}" has been marked as completed.`,
           variant: 'success',
         });
+      }
+    };
+
+    // Handle real-time task status change notifications
+    const handleTaskStatusChanged = (taskData: { id: string; status: string; title?: string }) => {
+      const taskTitle = taskData.title || `Task ${taskData.id}`;
+
+      switch (taskData.status) {
+        case 'Completed':
+          toast({
+            title: 'Task Completed',
+            description: `"${taskTitle}" has been marked as completed.`,
+            variant: 'success',
+          });
+          break;
+        case 'In Progress':
+          toast({
+            title: 'Task In Progress',
+            description: `"${taskTitle}" is now in progress.`,
+            variant: 'info',
+          });
+          break;
+        case 'Cancelled':
+          toast({
+            title: 'Task Cancelled',
+            description: `"${taskTitle}" has been cancelled.`,
+            variant: 'warning',
+          });
+          break;
+        case 'Pending':
+          toast({
+            title: 'Task Reset',
+            description: `"${taskTitle}" has been reset to pending.`,
+            variant: 'info',
+          });
+          break;
+        default:
+          toast({
+            title: 'Task Status Updated',
+            description: `"${taskTitle}" status changed to ${taskData.status}.`,
+            variant: 'info',
+          });
       }
     };
 
@@ -97,13 +140,21 @@ const Dashboard: React.FC = () => {
     // Set up socket event listeners
     onTaskCreated(handleTaskCreated);
     onTaskUpdated(handleTaskUpdated);
+    onTaskStatusChanged(handleTaskStatusChanged);
     onNotification(handleNotification);
 
     // Cleanup function
     return () => {
       // Note: The socket context handles cleanup of event listeners
     };
-  }, [isAuthenticated, isSocketConnected, onTaskCreated, onTaskUpdated, onNotification]);
+  }, [
+    isAuthenticated,
+    isSocketConnected,
+    onTaskCreated,
+    onTaskUpdated,
+    onTaskStatusChanged,
+    onNotification,
+  ]);
 
   // Calculate additional derived stats for UI compatibility
   const derivedStats = React.useMemo(() => {
@@ -124,7 +175,9 @@ const Dashboard: React.FC = () => {
     const weekEnd = endOfWeek(now);
 
     // Calculate due today and due this week from overdue tasks
-    const dueToday = overdueTasks.filter(task => task.dueDate && isToday(new Date(task.dueDate))).length;
+    const dueToday = overdueTasks.filter(
+      task => task.dueDate && isToday(new Date(task.dueDate))
+    ).length;
     const dueThisWeek = overdueTasks.filter(
       task =>
         task.dueDate && new Date(task.dueDate) >= weekStart && new Date(task.dueDate) <= weekEnd
@@ -157,7 +210,12 @@ const Dashboard: React.FC = () => {
       icon: CheckCircle2,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
-      trend: derivedStats.completionRate > 70 ? 'up' : derivedStats.completionRate > 40 ? 'neutral' : 'down',
+      trend:
+        derivedStats.completionRate > 70
+          ? 'up'
+          : derivedStats.completionRate > 40
+            ? 'neutral'
+            : 'down',
     },
     {
       title: 'Pending',
@@ -186,9 +244,7 @@ const Dashboard: React.FC = () => {
         <div className='text-center py-12'>
           <h1 className='text-3xl font-bold text-gray-900 mb-4'>Authentication Required</h1>
           <p className='text-gray-600 mb-6'>Please log in to view your dashboard.</p>
-          <Button onClick={() => navigate('/login')}>
-            Go to Login
-          </Button>
+          <Button onClick={() => navigate('/login')}>Go to Login</Button>
         </div>
       </div>
     );
